@@ -1,0 +1,17 @@
+numpy
+pandas
+rasterio
+geopandas
+shapely
+matplotlib
+folium
+streamlit
+sentinelhub
+torch
+torchvision
+Pillow
+reportlab
+requests
+python-dotenv
+scikit-learn
+tqdm

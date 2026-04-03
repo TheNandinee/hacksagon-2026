@@ -1,0 +1,8 @@
+venv/
+.env
+data/raw/*.npy
+data/processed/*.npy
+__pycache__/
+*.pyc
+.DS_Store
+outputs/reports/
