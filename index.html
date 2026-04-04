@@ -1,1149 +1,1310 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARANYA | Autonomous Real-time Analytics</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARANYA | Autonomous Real-time Analytics for Natural Yield & Area Protection</title>
 
-        html {
-            scroll-behavior: smooth;
-        }
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-        body {
-            width: 100%;
-            height: 100%;
-            overflow-x: hidden;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            color: #ffffff;
-        }
+<!-- Three.js + GSAP for cinematic intro -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
-        #canvas-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            z-index: 1;
-        }
+<!-- React + Babel for app -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.tailwindcss.com"></script>
 
-        #vignette {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: radial-gradient(ellipse at center, transparent 0%, rgba(10, 14, 39, 0.4) 100%);
-            z-index: 2;
-            pointer-events: none;
-        }
+<style>
+/* ═══════════════════════════════════════════
+   GLOBAL RESET
+═══════════════════════════════════════════ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
 
-        #grain {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' seed='2' /%3E%3C/filter%3E%3Crect width='400' height='400' fill='%23ffffff' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
-            z-index: 3;
-            pointer-events: none;
-            opacity: 0.5;
-        }
+/* ═══════════════════════════════════════════
+   CINEMATIC OVERLAY
+═══════════════════════════════════════════ */
+#cinematic-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #000;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: opacity 1.2s ease, visibility 1.2s ease;
+}
+#cinematic-overlay.fade-out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
-        #scroll-content {
-            position: relative;
-            z-index: 10;
-            width: 100%;
-        }
+/* Three.js canvas — fixed behind scroll content */
+#three-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+}
 
-        .scroll-section {
-            width: 100%;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-        }
+/* Vignette + scanlines */
+#vignette {
+  position: fixed; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%);
+}
+#scanlines {
+  position: fixed; inset: 0; z-index: 3; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,255,136,0.025), rgba(0,255,136,0.025) 1px, transparent 1px, transparent 2px);
+  animation: scanShift 8s linear infinite;
+}
+@keyframes scanShift { 0%{transform:translateY(0)} 100%{transform:translateY(10px)} }
 
-        .content-box {
-            text-align: center;
-            max-width: 1200px;
-            padding: 60px 40px;
-            opacity: 0;
-            pointer-events: none;
-            will-change: opacity, transform;
-        }
+/* HUD top-right */
+#hud {
+  position: fixed; top: 1.5rem; right: 1.5rem; z-index: 20;
+  font-family: 'Space Mono', monospace; font-size: 0.6rem;
+  color: rgba(0,255,136,0.5); letter-spacing: 0.1em;
+  opacity: 0; transition: opacity 0.8s; line-height: 2;
+  text-align: right;
+}
 
-        h1.aranya-title {
-            font-size: 8rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            margin: 0;
-            text-transform: uppercase;
-            line-height: 1;
-            background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            filter: drop-shadow(0 0 30px rgba(100, 200, 255, 0.3));
-        }
+/* Data marker ping */
+#data-marker {
+  position: fixed; top: 50%; left: 50%;
+  width: 60px; height: 60px;
+  transform: translate(-50%, -50%);
+  z-index: 5; opacity: 0; pointer-events: none;
+}
+.marker-ring {
+  width: 100%; height: 100%;
+  border: 2px solid #00ff88; border-radius: 50%;
+  animation: pulseRing 2s infinite; box-shadow: 0 0 15px #00ff88;
+}
+@keyframes pulseRing { 0%{transform:scale(1);opacity:1} 100%{transform:scale(1.5);opacity:0} }
+.marker-dot {
+  width: 8px; height: 8px; background: #00ff88; border-radius: 50%;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  box-shadow: 0 0 10px #00ff88;
+}
 
-        .letter {
-            display: inline-block;
-            opacity: 0;
-            transform: translateY(60px) scale(0.7);
-            margin: 0 6px;
-            will-change: opacity, transform;
-        }
+/* Scroll content sits above canvas */
+#scroll-content {
+  position: relative; z-index: 10; width: 100%;
+}
+.scroll-section {
+  width: 100%; height: 100vh;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+}
 
-        .letter.active {
-            animation: letterReveal 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
+/* ARANYA title */
+.aranya-title {
+  font-size: clamp(4rem, 10vw, 7rem);
+  letter-spacing: 0.45em; font-weight: 900;
+  font-family: 'Space Mono', monospace;
+  color: #00ff88; line-height: 1.2;
+  text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
+}
+.letter {
+  display: inline-block; opacity: 0;
+  transform: translateY(40px) scale(0.8); margin: 0 8px;
+}
+.letter.active { animation: letterDrop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+@keyframes letterDrop {
+  0%  { opacity:0; transform:translateY(40px) scale(0.8); text-shadow:0 0 5px #00ff88; }
+  50% { opacity:1; transform:translateY(-8px) scale(1.1); text-shadow:0 0 30px #00ff88, 0 0 60px #00ff88; }
+  100%{ opacity:1; transform:translateY(0) scale(1); text-shadow:0 0 10px #00ff88, 0 0 20px #00ff88; }
+}
 
-        @keyframes letterReveal {
-            0% {
-                opacity: 0;
-                transform: translateY(60px) scale(0.7);
-            }
-            50% {
-                transform: translateY(-15px) scale(1.15);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
+.subtitle {
+  font-size: clamp(0.6rem, 1.1vw, 0.85rem);
+  letter-spacing: 0.25em; margin-top: 2rem;
+  font-weight: 400; color: rgba(0,255,136,0.7);
+  text-transform: uppercase; line-height: 2;
+  font-family: 'Space Mono', monospace;
+}
+.word { display: inline-block; opacity: 0; margin: 0 3px; }
 
-        .subtitle {
-            font-size: 0.95rem;
-            letter-spacing: 0.15em;
-            margin-top: 3rem;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.7);
-            text-transform: uppercase;
-            line-height: 2;
-        }
+.problem-box { text-align: center; max-width: 900px; padding: 40px; opacity: 0; }
+.problem-text {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(1.3rem, 2.8vw, 2rem);
+  font-style: italic; font-weight: 300; color: #fff;
+  line-height: 1.8; letter-spacing: 0.02em;
+}
 
-        .word {
-            display: inline-block;
-            opacity: 0;
-            margin: 0 3px;
-            will-change: opacity;
-        }
+.cta-box { text-align: center; opacity: 0; }
+.cta-title {
+  font-family: 'Space Mono', monospace;
+  font-size: clamp(1rem, 2vw, 1.4rem);
+  color: #00ff88; letter-spacing: 0.2em;
+  text-transform: uppercase; margin-bottom: 2rem;
+  text-shadow: 0 0 10px #00ff88;
+}
+.cta-button {
+  padding: 18px 52px; font-size: 1rem;
+  background: transparent; color: #00ff88;
+  border: 2px solid #00ff88; cursor: pointer;
+  transition: all 0.3s ease; text-decoration: none;
+  display: inline-block; letter-spacing: 0.2em;
+  text-transform: uppercase; font-weight: 700;
+  font-family: 'Space Mono', monospace;
+  text-shadow: 0 0 10px #00ff88;
+  box-shadow: inset 0 0 10px rgba(0,255,136,0.1);
+}
+.cta-button:hover {
+  background: rgba(0,255,136,0.1);
+  box-shadow: 0 0 30px #00ff88, inset 0 0 15px rgba(0,255,136,0.15);
+  transform: scale(1.03);
+}
 
-        .problem-text {
-            font-size: 2.2rem;
-            line-height: 1.8;
-            font-weight: 400;
-            color: #ffffff;
-            max-width: 1100px;
-            letter-spacing: 0.02em;
-        }
+#scroll-hint {
+  position: fixed; bottom: 40px; left: 50%;
+  transform: translateX(-50%); z-index: 15;
+  font-size: 0.65rem; letter-spacing: 0.2em;
+  text-transform: uppercase; color: #00ff88;
+  animation: scrollPulse 2.5s infinite;
+  font-family: 'Space Mono', monospace;
+  text-shadow: 0 0 8px #00ff88;
+}
+@keyframes scrollPulse {
+  0%,100%{opacity:0.3;transform:translateX(-50%) translateY(0)}
+  50%{opacity:1;transform:translateX(-50%) translateY(5px)}
+}
 
-        .problem-text strong {
-            color: #64c8ff;
-            font-weight: 600;
-        }
+/* ═══════════════════════════════════════════
+   REACT APP (hidden until intro completes)
+═══════════════════════════════════════════ */
+#app-root {
+  position: fixed; inset: 0; z-index: 1;
+  opacity: 0; transition: opacity 1s ease 0.3s;
+  overflow: hidden;
+}
+#app-root.visible {
+  opacity: 1;
+  position: relative;
+  overflow: auto;
+}
 
-        .cta-button {
-            pointer-events: all;
-            padding: 18px 50px;
-            font-size: 1rem;
-            background: rgba(255, 255, 255, 0.08);
-            color: #ffffff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            cursor: pointer;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 50px;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            font-weight: 600;
-            font-family: 'Inter', sans-serif;
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(100, 200, 255, 0.1);
-        }
-
-        .cta-button:hover {
-            background: rgba(100, 200, 255, 0.15);
-            border-color: rgba(100, 200, 255, 0.4);
-            box-shadow: 0 8px 32px rgba(100, 200, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        #scroll-hint {
-            position: fixed;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 15;
-            font-size: 0.75rem;
-            letter-spacing: 0.15em;
-            text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.4);
-            animation: scrollPulse 2.5s infinite;
-            font-weight: 500;
-        }
-
-        @keyframes scrollPulse {
-            0%, 100% { opacity: 0.4; transform: translateX(-50%) translateY(0); }
-            50% { opacity: 1; transform: translateX(-50%) translateY(8px); }
-        }
-
-        #data-marker {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            width: 80px;
-            height: 80px;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .marker-ring {
-            width: 100%;
-            height: 100%;
-            border: 2px solid rgba(100, 200, 255, 0.6);
-            border-radius: 50%;
-            animation: pulseRing 2s infinite;
-            box-shadow: 0 0 20px rgba(100, 200, 255, 0.4);
-        }
-
-        @keyframes pulseRing {
-            0% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            100% {
-                transform: scale(1.8);
-                opacity: 0;
-            }
-        }
-
-        .marker-dot {
-            width: 12px;
-            height: 12px;
-            background: radial-gradient(circle, #64c8ff, #2a8fb8);
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 15px rgba(100, 200, 255, 0.8);
-        }
-
-        .spacer {
-            height: 100vh;
-        }
-
-        /* Portal Overlay */
-        #portal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(10, 14, 39, 0.95);
-            z-index: 20;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.8s ease;
-        }
-
-        #portal-overlay.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        #portal-content {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 21;
-            overflow-y: auto;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.8s ease 0.2s;
-        }
-
-        #portal-content.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        /* Portal Styles */
-        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
-        .glass-dark { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-        .scan-line { background: linear-gradient(to bottom, transparent, rgba(34,197,94,0.5), transparent); height: 100px; width: 100%; position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
-        @keyframes scan { from { top: -100px; } to { top: 100%; } }
-        .grid-bg { background-image: radial-gradient(rgba(34,197,94,0.15) 1px, transparent 1px); background-size: 30px 30px; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0a0a0a; }
-        ::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 10px; }
-        @keyframes notif-slide { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
-        .notif-enter { animation: notif-slide 0.3s ease; }
-        select option { background: #1a1a1a; color: white; }
-        .mono { font-family: 'Space Mono', monospace; }
-
-        /* ── SIMULATION STYLES ── */
-        @keyframes pulse-ring { 0%{transform:scale(1);opacity:0.8} 100%{transform:scale(2.5);opacity:0} }
-        @keyframes data-flow { 0%{stroke-dashoffset:200} 100%{stroke-dashoffset:0} }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-        @keyframes matrix-rain { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
-        @keyframes count-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes slide-in-right { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes slide-in-left { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes fade-in-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes progress-fill { from{width:0%} to{width:var(--target-width)} }
-        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-        @keyframes orbit { from{transform:rotate(0deg) translateX(60px) rotate(0deg)} to{transform:rotate(360deg) translateX(60px) rotate(-360deg)} }
-        @keyframes waveform { 0%,100%{height:4px} 50%{height:28px} }
-        @keyframes float-up { 0%{opacity:0;transform:translateY(0)} 50%{opacity:1} 100%{opacity:0;transform:translateY(-60px)} }
-        @keyframes highlight-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} 50%{box-shadow:0 0 0 6px rgba(34,197,94,0.15)} }
-
-        .sim-stage { animation: fade-in-up 0.5s ease forwards; }
-        .flow-arrow { animation: data-flow 1.5s linear infinite; stroke-dasharray: 8 4; }
-        .ping-ring::after { content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid #22c55e; animation:pulse-ring 2s ease-out infinite; }
-        .terminal-cursor::after { content:'|'; animation:blink 1s step-end infinite; color:#22c55e; }
-        .shimmer-bar { background: linear-gradient(90deg, rgba(34,197,94,0.1) 25%, rgba(34,197,94,0.3) 50%, rgba(34,197,94,0.1) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
-        .waveform-bar { width:3px; border-radius:2px; background:#22c55e; animation:waveform 0.8s ease-in-out infinite; transform-origin:bottom; }
-        .step-active { animation: highlight-pulse 2s ease infinite; }
-        .float-particle { animation: float-up 3s ease-in-out infinite; }
-    </style>
+/* ═══════════════════════════════════════════
+   REACT APP STYLES (from file 2)
+═══════════════════════════════════════════ */
+body { font-family: 'Inter', sans-serif; overflow-x: hidden; background: #000; color: white; }
+.glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+.glass-dark { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+.scan-line { background: linear-gradient(to bottom, transparent, rgba(34,197,94,0.5), transparent); height: 100px; width: 100%; position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
+@keyframes scan { from{top:-100px} to{top:100%} }
+.grid-bg { background-image: radial-gradient(rgba(34,197,94,0.15) 1px, transparent 1px); background-size: 30px 30px; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 10px; }
+@keyframes notif-slide { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+.notif-enter { animation: notif-slide 0.3s ease; }
+select option { background: #1a1a1a; color: white; }
+.mono { font-family: 'Space Mono', monospace; }
+@keyframes pulse-ring { 0%{transform:scale(1);opacity:0.8} 100%{transform:scale(2.5);opacity:0} }
+@keyframes data-flow { 0%{stroke-dashoffset:200} 100%{stroke-dashoffset:0} }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes count-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+@keyframes slide-in-right { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+@keyframes fade-in-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+@keyframes waveform { 0%,100%{height:4px} 50%{height:28px} }
+@keyframes float-up { 0%{opacity:0;transform:translateY(0)} 50%{opacity:1} 100%{opacity:0;transform:translateY(-60px)} }
+@keyframes highlight-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} 50%{box-shadow:0 0 0 6px rgba(34,197,94,0.15)} }
+.sim-stage { animation: fade-in-up 0.5s ease forwards; }
+.flow-arrow { animation: data-flow 1.5s linear infinite; stroke-dasharray: 8 4; }
+.ping-ring::after { content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid #22c55e; animation:pulse-ring 2s ease-out infinite; }
+.terminal-cursor::after { content:'|'; animation:blink 1s step-end infinite; color:#22c55e; }
+.shimmer-bar { background: linear-gradient(90deg, rgba(34,197,94,0.1) 25%, rgba(34,197,94,0.3) 50%, rgba(34,197,94,0.1) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
+</style>
 </head>
 <body>
 
-    <div id="canvas-container"></div>
-    <div id="vignette"></div>
-    <div id="grain"></div>
-    <div id="data-marker">
-        <div class="marker-ring"></div>
-        <div class="marker-dot"></div>
-    </div>
-    <div id="scroll-hint">↓ Scroll to explore ↓</div>
+<!-- ═══════════════════════════════════════════
+     REACT APP (mounts immediately, hidden)
+═══════════════════════════════════════════ -->
+<div id="app-root"></div>
 
-    <div id="scroll-content">
-        <!-- Scene 1: The Hook -->
-        <div class="scroll-section" id="scene1"></div>
+<!-- ═══════════════════════════════════════════
+     CINEMATIC OVERLAY
+═══════════════════════════════════════════ -->
+<div id="cinematic-overlay">
+  <div id="three-canvas"></div>
+  <div id="vignette"></div>
+  <div id="scanlines"></div>
+  <div id="hud">
+    <div id="hud-lat">28.6139° N</div>
+    <div id="hud-lon">77.2090° E</div>
+    <div id="hud-alt">ALT <span id="alt-val">35,786</span> KM</div>
+  </div>
+  <div id="data-marker">
+    <div class="marker-ring"></div>
+    <div class="marker-dot"></div>
+  </div>
+  <div id="scroll-hint">▼ scroll to explore ▼</div>
 
-        <!-- Scene 2: The Zoom -->
-        <div class="scroll-section" id="scene2"></div>
+  <div id="scroll-content">
+    <!-- Scene 1 & 2: Hook + Zoom (empty — Three.js handles visuals) -->
+    <div class="scroll-section" id="scene1"></div>
+    <div class="scroll-section" id="scene2"></div>
 
-        <!-- Scene 3: The Reveal -->
-        <div class="scroll-section" id="scene3">
-            <div class="content-box" id="reveal-box">
-                <h1 class="aranya-title">
-                    <span class="letter">A</span><span class="letter">R</span><span class="letter">A</span><span class="letter">N</span><span class="letter">Y</span><span class="letter">A</span>
-                </h1>
-                <div class="subtitle">
-                    <span class="word">Autonomous</span>
-                    <span class="word">·</span>
-                    <span class="word">Real-time</span>
-                    <span class="word">·</span>
-                    <span class="word">Analytics</span>
-                    <span class="word">·</span>
-                    <span class="word">for</span>
-                    <span class="word">·</span>
-                    <span class="word">Natural</span>
-                    <span class="word">·</span>
-                    <span class="word">Yield</span>
-                    <span class="word">·</span>
-                    <span class="word">Area</span>
-                    <span class="word">·</span>
-                    <span class="word">Protection</span>
-                </div>
-            </div>
+    <!-- Scene 3: Letter reveal -->
+    <div class="scroll-section" id="scene3">
+      <div id="reveal-box" style="text-align:center;opacity:0;padding:40px">
+        <h1 class="aranya-title">
+          <span class="letter">A</span><span class="letter">R</span><span class="letter">A</span><span class="letter">N</span><span class="letter">Y</span><span class="letter">A</span>
+        </h1>
+        <div class="subtitle">
+          <span class="word">Autonomous</span> <span class="word">·</span>
+          <span class="word">Real-time</span> <span class="word">·</span>
+          <span class="word">Analytics</span> <span class="word">·</span>
+          <span class="word">for</span> <span class="word">·</span>
+          <span class="word">Natural</span> <span class="word">·</span>
+          <span class="word">Yield</span> <span class="word">·</span>
+          <span class="word">Area</span> <span class="word">·</span>
+          <span class="word">Protection</span>
         </div>
-
-        <!-- Scene 4: The Problem Statement -->
-        <div class="scroll-section" id="scene4">
-            <div class="content-box" id="problem-box">
-                <p class="problem-text">
-                    "The Aravali hills — <strong>2 billion years old</strong> — are disappearing.<br>
-                    We built a system to <strong>catch who's doing it.</strong>"
-                </p>
-            </div>
-        </div>
-
-        <!-- Scene 5: The CTA -->
-        <div class="scroll-section" id="scene5">
-            <div class="content-box" id="cta-box">
-                <h2 style="font-size: 2.5rem; font-weight: 600; margin-bottom: 30px; letter-spacing: 0.05em;">Protect the Aravali</h2>
-                <button id="enter-portal-btn" class="cta-button">→ Enter ARANYA ←</button>
-            </div>
-        </div>
-
-        <!-- Extra spacer for scroll room -->
-        <div class="spacer"></div>
-        <div class="spacer"></div>
+      </div>
     </div>
 
-    <!-- Portal Overlay & Content -->
-    <div id="portal-overlay"></div>
-    <div id="portal-content">
-        <div id="root"></div>
+    <!-- Scene 4: Problem statement -->
+    <div class="scroll-section" id="scene4">
+      <div class="problem-box" id="problem-box">
+        <p class="problem-text">
+          "The Aravali hills — 2 billion years old — are disappearing.<br>
+          We built a system to catch who's doing it."
+        </p>
+      </div>
     </div>
 
-    <script>
-        // ==================== THREE.JS SETUP ====================
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 10000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setClearColor(0x0a0e27, 1);
-        container.appendChild(renderer.domElement);
+    <!-- Scene 5: CTA — enters the React app -->
+    <div class="scroll-section" id="scene5">
+      <div class="cta-box" id="cta-box">
+        <p class="cta-title">Protect the Aravali</p>
+        <button class="cta-button" id="enter-btn" onclick="enterApp()">→ Enter ARANYA ←</button>
+      </div>
+    </div>
 
-        // ==================== TEXTURES ====================
-        const textureLoader = new THREE.TextureLoader();
-        const earthTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
-        const earthNormal = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
-        const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg');
-        const cloudsTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
+    <div style="height:100vh"></div>
+  </div>
+</div>
 
-        // ==================== EARTH GROUP ====================
-        const earthGroup = new THREE.Group();
-        scene.add(earthGroup);
+<!-- ═══════════════════════════════════════════
+     THREE.JS — CINEMATIC EARTH
+═══════════════════════════════════════════ -->
+<script>
+(function() {
+  const container = document.getElementById('three-canvas');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 10000);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 1);
+  container.appendChild(renderer.domElement);
 
-        // Earth Sphere
-        const earthGeo = new THREE.SphereGeometry(1, 256, 256);
-        const earthMat = new THREE.MeshPhongMaterial({
-            map: earthTexture,
-            normalMap: earthNormal,
-            specularMap: earthSpecular,
-            specular: new THREE.Color(0x222222),
-            shininess: 35,
-            emissive: new THREE.Color(0x0a0a0a)
-        });
-        const earthMesh = new THREE.Mesh(earthGeo, earthMat);
-        earthGroup.add(earthMesh);
+  const tl = new THREE.TextureLoader();
+  const earthTex  = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
+  const earthNorm = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
+  const earthSpec = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg');
+  const cloudTex  = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
 
-        // Clouds
-        const cloudGeo = new THREE.SphereGeometry(1.02, 256, 256);
-        const cloudMat = new THREE.MeshPhongMaterial({
-            map: cloudsTexture,
-            transparent: true,
-            opacity: 0.5,
-            emissive: new THREE.Color(0x050505)
-        });
-        const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-        earthGroup.add(cloudMesh);
+  const earthGroup = new THREE.Group();
+  scene.add(earthGroup);
 
-        // Atmosphere Layers
-        const atmos1Geo = new THREE.SphereGeometry(1.03, 256, 256);
-        const atmos1Mat = new THREE.MeshBasicMaterial({
-            color: 0x64c8ff,
-            transparent: true,
-            opacity: 0.12,
-            side: THREE.BackSide
-        });
-        const atmos1Mesh = new THREE.Mesh(atmos1Geo, atmos1Mat);
-        earthGroup.add(atmos1Mesh);
+  const earthMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 128, 128),
+    new THREE.MeshPhongMaterial({ map:earthTex, normalMap:earthNorm, specularMap:earthSpec, specular:new THREE.Color(0x333333), shininess:25, emissive:new THREE.Color(0x111111) })
+  );
+  earthGroup.add(earthMesh);
 
-        const atmos2Geo = new THREE.SphereGeometry(1.08, 256, 256);
-        const atmos2Mat = new THREE.MeshBasicMaterial({
-            color: 0x2a5f8f,
-            transparent: true,
-            opacity: 0.15,
-            side: THREE.BackSide
-        });
-        const atmos2Mesh = new THREE.Mesh(atmos2Geo, atmos2Mat);
-        earthGroup.add(atmos2Mesh);
+  const cloudMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.018, 128, 128),
+    new THREE.MeshPhongMaterial({ map:cloudTex, transparent:true, opacity:0.55 })
+  );
+  earthGroup.add(cloudMesh);
 
-        const atmos3Geo = new THREE.SphereGeometry(1.15, 256, 256);
-        const atmos3Mat = new THREE.MeshBasicMaterial({
-            color: 0x1a3a52,
-            transparent: true,
-            opacity: 0.08,
-            side: THREE.BackSide
-        });
-        const atmos3Mesh = new THREE.Mesh(atmos3Geo, atmos3Mat);
-        earthGroup.add(atmos3Mesh);
+  // Atmosphere layers
+  [[1.03, 0x00ff88, 0.07], [1.065, 0x4488ff, 0.10], [1.12, 0x2244aa, 0.05]].forEach(([r, col, op]) => {
+    earthGroup.add(new THREE.Mesh(
+      new THREE.SphereGeometry(r, 64, 64),
+      new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:op, side:THREE.BackSide })
+    ));
+  });
 
-        // ==================== STARFIELD ====================
-        function createPremiumStars(count, size, range, color, opacity) {
-            const geo = new THREE.BufferGeometry();
-            const coords = new Float32Array(count * 3);
-            for(let i = 0; i < count * 3; i++) {
-                coords[i] = (Math.random() - 0.5) * range;
-            }
-            geo.setAttribute('position', new THREE.BufferAttribute(coords, 3));
-            const mat = new THREE.PointsMaterial({ 
-                color: color,
-                size: size, 
-                transparent: true, 
-                opacity: opacity,
-                sizeAttenuation: true
-            });
-            return new THREE.Points(geo, mat);
-        }
+  // Stars
+  function makeStars(count, size, range, col) {
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * range;
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    return new THREE.Points(geo, new THREE.PointsMaterial({ color:col, size, transparent:true, opacity:0.7, sizeAttenuation:true }));
+  }
+  const s1 = makeStars(3000, 0.05, 150, 0xffffff);
+  const s2 = makeStars(1200, 0.08, 200, 0x88ffcc);
+  const s3 = makeStars(600,  0.12, 250, 0x4488ff);
+  scene.add(s1); scene.add(s2); scene.add(s3);
 
-        const starField1 = createPremiumStars(4000, 0.06, 200, 0xffffff, 0.7);
-        const starField2 = createPremiumStars(2000, 0.1, 300, 0x64c8ff, 0.4);
-        const starField3 = createPremiumStars(1000, 0.15, 400, 0x2a8fb8, 0.3);
-        scene.add(starField1);
-        scene.add(starField2);
-        scene.add(starField3);
+  // Lights
+  scene.add(new THREE.AmbientLight(0x404040, 2.5));
+  const sun = new THREE.DirectionalLight(0xffffff, 3);
+  sun.position.set(8, 4, 8);
+  scene.add(sun);
+  const rim = new THREE.DirectionalLight(0x00ff88, 0.6);
+  rim.position.set(-5, -2, -8);
+  scene.add(rim);
 
-        // ==================== LIGHTING ====================
-        const ambientLight = new THREE.AmbientLight(0x505060, 2.5);
-        scene.add(ambientLight);
+  // Initial camera & earth orientation (tilted so India faces us when zoomed)
+  camera.position.z = 5;
+  earthGroup.rotation.y = -Math.PI / 2.5;
+  earthGroup.rotation.x = 0.28;
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 3.5);
-        sunLight.position.set(10, 5, 10);
-        scene.add(sunLight);
+  // Animate
+  function animate() {
+    requestAnimationFrame(animate);
+    earthGroup.rotation.y += 0.00008;
+    cloudMesh.rotation.y  += 0.00012;
+    s1.rotation.y += 0.00004;
+    s2.rotation.y += 0.00003;
+    renderer.render(scene, camera);
+  }
+  animate();
 
-        const rimLight = new THREE.DirectionalLight(0x64c8ff, 1.2);
-        rimLight.position.set(-8, -3, -10);
-        scene.add(rimLight);
+  // GSAP scroll-driven story
+  gsap.registerPlugin(ScrollTrigger);
 
-        // ==================== CAMERA SETUP ====================
-        camera.position.z = 5;
-        earthGroup.rotation.y = -Math.PI / 2.5;
-        earthGroup.rotation.x = 0.3;
+  const master = gsap.timeline({
+    scrollTrigger: {
+      trigger: '#scroll-content',
+      start: 'top top',
+      end: 'bottom bottom',
+      scrub: 2.5
+    }
+  });
 
-        // ==================== ANIMATION LOOP ====================
-        function animate() {
-            requestAnimationFrame(animate);
-            earthGroup.rotation.y += 0.00008;
-            cloudMesh.rotation.y += 0.0001;
-            starField1.rotation.y += 0.00003;
-            starField2.rotation.y += 0.00002;
-            starField3.rotation.y += 0.00001;
-            renderer.render(scene, camera);
-        }
-        animate();
+  // Scene 1→2: zoom toward India/Aravali region
+  master.to(camera.position, { z: 1.15, ease: 'power2.inOut', duration: 1 }, 0);
+  master.to(earthGroup.rotation, { y: Math.PI * 0.44, x: 0.48, ease: 'power2.inOut', duration: 1 }, 0);
+  master.to(camera.position, { z: 0.48, ease: 'power2.inOut', duration: 0.8 }, 0.55);
+  master.to('#data-marker', { opacity: 1, duration: 0.4 }, 0.75);
+  master.to('#hud', { opacity: 1, duration: 0.5 }, 0.6);
 
-        // ==================== GSAP SCROLL ANIMATIONS ====================
-        gsap.registerPlugin(ScrollTrigger);
+  // Scene 3: letters
+  master.to('#reveal-box', { opacity: 1, duration: 0.3 }, 0.65);
+  document.querySelectorAll('.letter').forEach((l, i) => {
+    master.call(() => l.classList.add('active'), [], 0.8 + i * 0.14);
+  });
+  document.querySelectorAll('.word').forEach((w, i) => {
+    master.to(w, { opacity: 1, duration: 0.1 }, 1.75 + i * 0.04);
+  });
 
-        const masterTL = gsap.timeline({
-            scrollTrigger: {
-                trigger: "#scroll-content",
-                start: "top top",
-                end: "bottom bottom",
-                scrub: 1.5,
-                markers: false
-            }
-        });
+  // Scene 4: problem
+  master.to('#reveal-box', { opacity: 0, y: -80, filter: 'blur(12px)', duration: 0.4 }, 2.1);
+  master.to('#data-marker', { opacity: 0, duration: 0.3 }, 2.1);
+  master.to('#problem-box', { opacity: 1, duration: 0.6 }, 2.4);
+  master.to(camera.position, { z: 0.72, ease: 'power2.inOut', duration: 0.7 }, 2.1);
 
-        // STAGE 1: Zoom to India
-        masterTL.to(camera.position, {
-            z: 1.3,
-            ease: "power2.inOut",
-            duration: 1.2
-        }, 0);
+  // Scene 5: CTA
+  master.to('#problem-box', { opacity: 0, y: -60, filter: 'blur(10px)', duration: 0.4 }, 3.05);
+  master.to('#cta-box', { opacity: 1, duration: 0.6 }, 3.4);
+  master.to(camera.position, { z: 0.38, ease: 'power2.inOut', duration: 0.7 }, 3.4);
+  master.to('#scroll-hint', { opacity: 0, duration: 0.3 }, 0.15);
 
-        masterTL.to(earthGroup.rotation, {
-            y: Math.PI * 0.42,
-            x: 0.5,
-            ease: "power2.inOut",
-            duration: 1.2
-        }, 0);
+  // HUD counter effect (cosmetic)
+  let hudTick = setInterval(() => {
+    const el = document.getElementById('alt-val');
+    if (!el) { clearInterval(hudTick); return; }
+    const cur = parseInt(el.textContent.replace(/,/g,'')) || 35786;
+    const next = Math.max(1, Math.round(cur * 0.992));
+    el.textContent = next.toLocaleString();
+    if (next <= 2) clearInterval(hudTick);
+  }, 120);
 
-        masterTL.to([atmos1Mat, atmos2Mat, atmos3Mat], {
-            opacity: (i) => [0.18, 0.22, 0.12][i],
-            duration: 0.8
-        }, 0.2);
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    ScrollTrigger.refresh();
+  });
+})();
 
-        // STAGE 2: Deep zoom to Aravali
-        masterTL.to(camera.position, {
-            z: 0.45,
-            ease: "power2.inOut",
-            duration: 1.2
-        }, 0.6);
+// Called when Enter ARANYA is clicked
+function enterApp() {
+  const overlay = document.getElementById('cinematic-overlay');
+  const appRoot = document.getElementById('app-root');
+  overlay.classList.add('fade-out');
+  setTimeout(() => {
+    overlay.style.display = 'none';
+    appRoot.classList.add('visible');
+    document.body.style.overflow = 'auto';
+  }, 1300);
+}
+</script>
 
-        masterTL.to("#data-marker", {
-            opacity: 1,
-            duration: 0.6
-        }, 0.8);
+<!-- ═══════════════════════════════════════════
+     REACT APP
+═══════════════════════════════════════════ -->
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
 
-        // STAGE 3: Reveal ARANYA
-        masterTL.to("#reveal-box", {
-            opacity: 1,
-            duration: 0.4
-        }, 1.0);
+const LucideIcon = ({ name, className="w-5 h-5", size, color, strokeWidth }) => {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (window.lucide && ref.current) {
+      ref.current.innerHTML = '';
+      const el = document.createElement('i');
+      el.setAttribute('data-lucide', name);
+      ref.current.appendChild(el);
+      window.lucide.createIcons({ elements:[el], attrs:{ class:className, ...(size&&{width:size,height:size}), ...(color&&{stroke:color}), ...(strokeWidth&&{'stroke-width':strokeWidth}) }, nameAttr:'data-lucide' });
+    }
+  }, [name, className, size, color, strokeWidth]);
+  return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
+};
 
-        const letters = document.querySelectorAll('.letter');
-        letters.forEach((letter, i) => {
-            const delay = 1.3 + (i * 0.18);
-            masterTL.call(() => {
-                letter.classList.add('active');
-            }, [], delay);
-        });
+// ── DATA ─────────────────────────────────────────────────────────
+let _counter = 3;
+const genId = () => `REP-2024-${String(++_counter).padStart(3,'0')}`;
+const INITIAL_REPORTS = [
+  { id:"REP-2024-001", topic:"Illegal Granite Mining", coords:"28.618° N, 76.234° E", lat:28.62, lng:76.23, status:"Under Investigation", risk:88, loss:"12.4%", date:"2024-05-12", citizen:"Ramesh K.", description:"Heavy machinery observed moving toward the protected forest zone at 2 AM daily. Ground water contaminated.", zone:"Aravalli Zone C — Charkhi Dadri", violationType:"Mining" },
+  { id:"REP-2024-002", topic:"Forest Encroachment", coords:"28.575° N, 76.198° E", lat:28.58, lng:76.20, status:"Under Review", risk:64, loss:"4.2%", date:"2024-05-14", citizen:"Anita S.", description:"Fencing appearing around common grazing lands near the reserve border. Lease exceeds permitted area.", zone:"Aravalli Zone B — Pichopa Kalan", violationType:"Encroachment" },
+];
+const VIOLATION_TYPES = ["Mining","Encroachment","Logging","Poaching","Industrial Waste","Water Contamination"];
+const ZONES = ["Aravalli Zone A — Bhiwani","Aravalli Zone B — Pichopa Kalan","Aravalli Zone C — Charkhi Dadri","Aravalli Zone D — Mahendergarh","Rajawas Protected Forest","Dadam Mining Belt","Delhi Ridge Zone"];
+const STATUSES = ["Pending Review","Under Review","Under Investigation","Resolved","Closed"];
 
-        const words = document.querySelectorAll('.word');
-        words.forEach((word, i) => {
-            masterTL.to(word, {
-                opacity: 1,
-                duration: 0.1
-            }, 2.4 + (i * 0.05));
-        });
+// ── NOTIFICATIONS ─────────────────────────────────────────────────
+const NotifCtx = createContext(null);
+const useNotify = () => useContext(NotifCtx);
+const NotificationProvider = ({ children }) => {
+  const [notifs, setNotifs] = useState([]);
+  const notify = useCallback((msg, type='info') => {
+    const id = Date.now();
+    setNotifs(p => [...p, { id, msg, type }]);
+    setTimeout(() => setNotifs(p => p.filter(n => n.id !== id)), 4000);
+  }, []);
+  return (
+    <NotifCtx.Provider value={notify}>
+      {children}
+      <div style={{position:'fixed',top:76,right:20,zIndex:9999,display:'flex',flexDirection:'column',gap:8,width:320}}>
+        {notifs.map(n => (
+          <div key={n.id} className="notif-enter glass-dark rounded-xl px-4 py-3 flex items-center gap-3 text-sm"
+            style={{borderLeft:`3px solid ${n.type==='success'?'#22c55e':n.type==='error'?'#ef4444':'#3b82f6'}`}}>
+            <span style={{color:n.type==='success'?'#22c55e':n.type==='error'?'#ef4444':'#3b82f6',fontWeight:700}}>{n.type==='success'?'✓':n.type==='error'?'✕':'ℹ'}</span>
+            <span className="text-slate-200 flex-1">{n.msg}</span>
+          </div>
+        ))}
+      </div>
+    </NotifCtx.Provider>
+  );
+};
 
-        // STAGE 4: Problem Statement
-        masterTL.to("#reveal-box", {
-            opacity: 0,
-            y: -120,
-            filter: "blur(20px)",
-            duration: 0.6
-        }, 2.8);
+// ── NAV ───────────────────────────────────────────────────────────
+const Navigation = ({ setView, userRole, onLogout }) => (
+  <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center glass-dark">
+    <div className="flex items-center gap-2 cursor-pointer" onClick={() => { onLogout && onLogout(); setView('landing'); }}>
+      <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+        <LucideIcon name="shield" className="text-black w-5 h-5" />
+      </div>
+      <span className="text-white font-bold tracking-tighter text-xl" style={{fontFamily:'Space Mono,monospace'}}>A.R.A.N.Y.A</span>
+    </div>
+    <div className="flex gap-4 items-center">
+      {userRole && (
+        <span className="text-green-500 text-xs font-mono bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+          {userRole==='gov'?'🛡 GOV OFFICIAL':'👤 CITIZEN'}
+        </span>
+      )}
+      {!userRole ? (
+        <button onClick={() => setView('login')} className="bg-green-500 hover:bg-green-400 transition-colors text-black px-4 py-1.5 rounded-full font-semibold text-sm">Access Terminal</button>
+      ) : (
+        <button onClick={() => { onLogout(); setView('landing'); }} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-1.5 rounded-full font-semibold text-sm transition-colors">Log Out</button>
+      )}
+    </div>
+  </nav>
+);
 
-        masterTL.to("#data-marker", {
-            opacity: 0,
-            duration: 0.4
-        }, 2.8);
+// ── PIPELINE SIMULATION ───────────────────────────────────────────
+const PIPELINE_STAGES = [
+  { id:'ingest', step:'01', icon:'satellite', title:'Data Ingestion', subtitle:'Streaming Satellite + Environmental Feeds', color:'#22c55e',
+    description:'Raw multispectral imagery from Sentinel-2 (10m GSD) and Cartosat streams is ingested continuously. Weather telemetry, protected-zone shapefiles and administrative boundaries are fused simultaneously.',
+    dataPoints:[{label:'Sentinel-2 Band B4 (Red)',val:'10m GSD',status:'LIVE'},{label:'Sentinel-2 Band B8 (NIR)',val:'10m GSD',status:'LIVE'},{label:'Weather API – IMD',val:'15 min',status:'LIVE'},{label:'Protected Zone Shapefiles',val:'Loaded',status:'OK'},{label:'Admin Boundary Layers',val:'Loaded',status:'OK'}] },
+  { id:'preprocess', step:'02', icon:'cpu', title:'Preprocessing Engine', subtitle:'Cloud Masking · Spectral Indices · Temporal Alignment', color:'#3b82f6',
+    description:'Raw tiles are stripped of cloud contamination, calibrated radiometrically, and converted into spectral-index feature maps (NDVI, NDBI). Every pixel is temporally registered against a historical baseline.',
+    metrics:[{label:'Cloud Masking',pct:97,col:'#22c55e'},{label:'NDVI Computation',pct:100,col:'#22c55e'},{label:'NDBI Computation',pct:100,col:'#22c55e'},{label:'Temporal Alignment',pct:94,col:'#3b82f6'},{label:'Tile Extraction (ROI)',pct:100,col:'#22c55e'}] },
+  { id:'statedef', step:'03', icon:'layers', title:'State Definition', subtitle:'Zₜ ∈ {Vegetation, Barren, Built-up, Mining Scar, Water}', color:'#a855f7',
+    description:'Each region is assigned a time-dependent ecological state vector Zₜ. Transitions — especially Vegetation → Mining Scar inside Protected Zones — trigger the risk engine immediately.',
+    states:['Vegetation','Barren','Built-up','Mining Scar','Water Body'], stateColors:['#22c55e','#eab308','#f97316','#ef4444','#3b82f6'] },
+  { id:'risk', step:'04', icon:'activity', title:'Risk Emission Model', subtitle:'P(Illegal | Zₜ, ΔZₜ, proximity, rainfall)', color:'#ef4444',
+    description:'A probabilistic risk scoring model computes a 0–100 threat index per zone. It integrates vegetation loss delta, excavation growth rate, proximity to protected boundaries, historical violations, and rainfall correlation.',
+    factors:[{name:'Vegetation Loss Δ',weight:32,col:'#ef4444'},{name:'Excavation Growth',weight:27,col:'#f97316'},{name:'Proximity to Protected Zone',weight:22,col:'#eab308'},{name:'Historical Patterns',weight:12,col:'#a855f7'},{name:'Rainfall Correlation',weight:7,col:'#3b82f6'}] },
+  { id:'compliance', step:'05', icon:'shield-check', title:'Compliance Intelligence', subtitle:'Detection → Legal Reasoning → Actionable Alert', color:'#22c55e',
+    description:'When Risk Score > threshold, the system auto-triggers a geo-tagged violation alert, retrieves the relevant legal provision (Forest Conservation Act §4(1)), generates an AI explanation, and logs the dossier for enforcement.',
+    actions:[{label:'Threshold Evaluation',icon:'check-circle',done:true},{label:'Policy Retrieval (FCA §4)',icon:'book-open',done:true},{label:'Explanation Generation',icon:'file-text',done:true},{label:'Alert Dispatch (SMS/Email)',icon:'bell',done:true},{label:'Enforcement Dossier Logged',icon:'archive',done:true}] },
+];
 
-        masterTL.to("#problem-box", {
-            opacity: 1,
-            duration: 0.6
-        }, 3.2);
+const VisualIngest = () => {
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick(x => x+1), 400); return () => clearInterval(t); }, []);
+  const streams = ['B4 Red Band','B8 NIR Band','SWIR B11','Weather API','Shapefile Layer','Admin Boundary'];
+  return (
+    <div className="flex flex-col gap-2 w-full">
+      {streams.map((s,i) => (
+        <div key={s} className="flex items-center gap-2 text-[10px] font-mono">
+          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${tick%(i+2)===0?'bg-green-500':'bg-green-500/30'}`} style={{transition:'background 0.1s'}}></div>
+          <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div className="h-full bg-green-500/60 shimmer-bar" style={{width:`${60+i*6}%`}}></div>
+          </div>
+          <span className="text-slate-500 w-24 truncate">{s}</span>
+          <span className="text-green-500">✓</span>
+        </div>
+      ))}
+      <div className="mt-3 p-2 bg-green-500/5 border border-green-500/20 rounded-lg text-[10px] font-mono text-green-400 terminal-cursor">
+        INGESTING 1,847 TILES @ 10m GSD...
+      </div>
+    </div>
+  );
+};
 
-        masterTL.to(camera.position, {
-            z: 0.65,
-            ease: "power2.inOut",
-            duration: 0.8
-        }, 2.8);
+const VisualPreprocess = () => {
+  const [active, setActive] = useState(0);
+  useEffect(() => { const t = setInterval(() => setActive(x=>(x+1)%3), 900); return () => clearInterval(t); }, []);
+  const panels = ['RAW TILE','CLOUD MASKED','NDVI INDEX'];
+  const colors = ['from-zinc-800','from-blue-900/40','from-green-900/40'];
+  const overlays = [
+    <div key="raw" className="absolute inset-0 opacity-20" style={{backgroundImage:'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)',backgroundSize:'8px 8px'}}></div>,
+    <div key="m" className="absolute inset-0 flex items-center justify-center"><div className="w-16 h-16 rounded-full bg-white/10 border border-white/20"></div></div>,
+    <div key="n" className="absolute inset-0" style={{background:'linear-gradient(135deg,#15803d 0%,#22c55e 40%,#eab308 70%,#ef4444 100%)',opacity:0.6}}></div>
+  ];
+  return (
+    <div className="flex gap-3 w-full">
+      {panels.map((p,i) => (
+        <div key={p} className={`flex-1 relative rounded-xl overflow-hidden border transition-all duration-300 ${active===i?'border-green-500/60':'border-white/10'}`} style={{height:140,background:'#111'}}>
+          <div className={`absolute inset-0 bg-gradient-to-br ${colors[i]} to-black/80`}></div>
+          {overlays[i]}
+          <div className="absolute bottom-2 left-2 right-2 text-[9px] font-mono text-slate-400">{p}</div>
+          {active===i && <div className="scan-line"></div>}
+        </div>
+      ))}
+    </div>
+  );
+};
 
-        // STAGE 5: CTA Button
-        masterTL.to("#problem-box", {
-            opacity: 0,
-            y: -100,
-            filter: "blur(15px)",
-            duration: 0.6
-        }, 3.8);
+const VisualStateDef = ({ states, stateColors }) => {
+  const [active, setActive] = useState(0);
+  useEffect(() => { const t = setInterval(() => setActive(x=>(x+1)%states.length), 1200); return () => clearInterval(t); }, [states.length]);
+  const grid = useMemo(() => Array.from({length:200}, () => Math.floor(Math.random()*states.length)), [states.length]);
+  return (
+    <div className="w-full">
+      <div className="grid gap-1" style={{gridTemplateColumns:'repeat(20,1fr)'}}>
+        {grid.map((s,i) => <div key={i} className="rounded-[2px] transition-all duration-500" style={{height:10,background:active===s?stateColors[s]:stateColors[s]+'33',opacity:active===s?1:0.4}}></div>)}
+      </div>
+      <div className="flex flex-wrap gap-2 mt-3">
+        {states.map((s,i) => (
+          <div key={s} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono border transition-all ${active===i?'scale-105':''}`}
+            style={{color:stateColors[i],borderColor:active===i?stateColors[i]:'transparent',background:`${stateColors[i]}15`}}>
+            <div className="w-2 h-2 rounded-full" style={{background:stateColors[i]}}></div>{s}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-        masterTL.to("#cta-box", {
-            opacity: 1,
-            y: 0,
-            duration: 0.6
-        }, 4.2);
-
-        masterTL.to(camera.position, {
-            z: 0.35,
-            ease: "power2.inOut",
-            duration: 0.8
-        }, 4.2);
-
-        // ==================== PORTAL TRANSITION ====================
-        document.getElementById('enter-portal-btn').addEventListener('click', () => {
-            // Disable scroll
-            document.body.style.overflow = 'hidden';
-            
-            // Fade in portal overlay
-            const overlay = document.getElementById('portal-overlay');
-            const content = document.getElementById('portal-content');
-            overlay.classList.add('active');
-            content.classList.add('active');
-            
-            // Keep Earth rotating in background
-            gsap.to(camera.position, { z: 0.5, duration: 1 });
-            
-            // Initialize React Portal
-            setTimeout(() => {
-                ReactDOM.createRoot(document.getElementById('root')).render(<PortalApp />);
-            }, 300);
-        });
-
-        // ==================== HANDLE RESIZE ====================
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            ScrollTrigger.refresh();
-        });
-
-    </script>
-
-    <!-- ==================== REACT PORTAL APPLICATION ==================== -->
-    <script type="text/babel">
-        const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
-
-        // ── DATA ──────────────────────────────────────────────────────────────────────
-        let _counter = 3;
-        const genId = () => `REP-2024-${String(++_counter).padStart(3,'0')}`;
-        const INITIAL_REPORTS = [
-            { id:"REP-2024-001", topic:"Illegal Granite Mining", coords:"27.4285° N, 76.1245° E", lat:27.43, lng:76.12, status:"Under Investigation", risk:88, loss:"12.4%", date:"2024-05-12", citizen:"Ramesh K.", description:"Heavy machinery observed moving toward the protected forest zone at 2 AM daily.", zone:"Aravalli Zone C", violationType:"Mining" },
-            { id:"REP-2024-002", topic:"Forest Encroachment", coords:"28.1121° N, 77.0210° E", lat:28.11, lng:77.02, status:"Under Review", risk:64, loss:"4.2%", date:"2024-05-14", citizen:"Anita S.", description:"Fencing appearing around common grazing lands near the reserve border.", zone:"Delhi Ridge Zone B", violationType:"Encroachment" },
-        ];
-        const VIOLATION_TYPES = ["Mining","Encroachment","Logging","Poaching","Industrial Waste","Water Contamination"];
-        const ZONES = ["Aravalli Zone A","Aravalli Zone B","Aravalli Zone C","Delhi Ridge Zone A","Delhi Ridge Zone B","Haryana Forest Reserve","Yamuna Floodplain"];
-        const STATUSES = ["Pending Review","Under Review","Under Investigation","Resolved","Closed"];
-
-        // ── PIPELINE STAGES ────────────────────────────────────────────────────────────
-        const PIPELINE_STAGES = [
-            {
-                id: 'ingest',
-                step: '01',
-                icon: 'satellite',
-                title: 'Data Ingestion',
-                subtitle: 'Streaming Satellite + Environmental Feeds',
-                color: '#22c55e',
-                description: 'Raw multispectral imagery from Sentinel-2 (10m GSD) and Cartosat streams is ingested as a continuous feed. Weather telemetry, protected-zone shapefiles and administrative boundaries are fused simultaneously.',
-                dataPoints: [
-                    { label: 'Sentinel-2 Band B4 (Red)', val: '10m GSD', status: 'LIVE' },
-                    { label: 'Sentinel-2 Band B8 (NIR)', val: '10m GSD', status: 'LIVE' },
-                    { label: 'Weather API – IMD / OpenWeather', val: '15 min', status: 'LIVE' },
-                    { label: 'Protected Zone Shapefiles', val: 'Loaded', status: 'OK' },
-                    { label: 'Admin Boundary Layers', val: 'Loaded', status: 'OK' },
-                ],
-                visual: 'ingest'
-            },
-            {
-                id: 'preprocess',
-                step: '02',
-                icon: 'cpu',
-                title: 'Preprocessing & Normalization',
-                subtitle: 'Cloud Masking, Radiometric Calibration, NDVI Computation',
-                color: '#3b82f6',
-                description: 'Incoming tiles are cloud-masked using Sentinel-2 SCL bands. Radiometric calibration is applied, and NDVI (Normalized Difference Vegetation Index) is computed per pixel. Baseline NDVI is established for each protected zone.',
-                dataPoints: [
-                    { label: 'Cloud Cover Threshold', val: '< 5%', status: 'OK' },
-                    { label: 'Radiometric Calibration', val: 'Applied', status: 'OK' },
-                    { label: 'NDVI Baseline Established', val: 'Yes', status: 'OK' },
-                    { label: 'Tiles Processed', val: '1,847', status: 'LIVE' },
-                    { label: 'Processing Latency', val: '12 min', status: 'OK' },
-                ],
-                visual: 'preprocess'
-            },
-            {
-                id: 'state',
-                step: '03',
-                icon: 'map',
-                title: 'State Definition & Change Detection',
-                subtitle: 'Vegetation → Mining Scar Transition Flagging',
-                color: '#f59e0b',
-                description: 'Each pixel is classified into discrete states: Vegetation, Water, Urban, Mining Scar, etc. Changes in state (e.g., Vegetation → Mining Scar) within a Protected Zone are immediately flagged as HIGH PENALTY.',
-                metrics: [
-                    { label: 'Vegetation Coverage', pct: 78, col: '#22c55e' },
-                    { label: 'Urban Encroachment', pct: 12, col: '#ef4444' },
-                    { label: 'Mining Scars Detected', pct: 8, col: '#f59e0b' },
-                    { label: 'Water Bodies', pct: 2, col: '#3b82f6' },
-                ],
-                visual: 'state'
-            },
-            {
-                id: 'risk',
-                step: '04',
-                icon: 'alert-triangle',
-                title: 'Risk Scoring Engine',
-                subtitle: 'Probabilistic Violation Assessment',
-                color: '#ef4444',
-                description: 'A Gradient Boosted model computes P(Illegal | Zₜ, ΔZₜ, proximity, rainfall). Factors include vegetation loss magnitude, proximity to protected zone, historical patterns, and rainfall correlation.',
-                factors: [
-                    { name: 'Vegetation Loss Magnitude', weight: 35, col: '#ef4444' },
-                    { name: 'Temporal Velocity', weight: 24, col: '#f59e0b' },
-                    { name: 'Proximity to Protected Zone', weight: 22, col: '#eab308' },
-                    { name: 'Historical Patterns', weight: 12, col: '#a855f7' },
-                    { name: 'Rainfall Correlation', weight: 7, col: '#3b82f6' },
-                ],
-                visual: 'risk'
-            },
-            {
-                id: 'compliance',
-                step: '05',
-                icon: 'shield-check',
-                title: 'Compliance Intelligence Engine',
-                subtitle: 'Detection → Legal Reasoning → Actionable Alert',
-                color: '#22c55e',
-                description: 'When Risk Score > threshold, the system auto-triggers a geo-tagged violation alert, retrieves the relevant legal provision (e.g. Forest Conservation Act §4(1)), generates an AI explanation, and logs the dossier for enforcement.',
-                actions: [
-                    { label: 'Threshold Evaluation', icon: 'check-circle', done: true },
-                    { label: 'Policy Retrieval (FCA §4)', icon: 'book-open', done: true },
-                    { label: 'Explanation Generation', icon: 'file-text', done: true },
-                    { label: 'Alert Dispatch (SMS/Email)', icon: 'bell', done: true },
-                    { label: 'Enforcement Dossier Logged', icon: 'archive', done: true },
-                ],
-                visual: 'compliance'
-            },
-        ];
-
-        // ── LUCIDE ICON COMPONENT ──────────────────────────────────────────────────────
-        const LucideIcon = ({ name, className="w-5 h-5", size, color, strokeWidth }) => {
-            const ref = useRef(null);
-            useEffect(() => {
-                if (window.lucide && ref.current) {
-                    ref.current.innerHTML = '';
-                    const el = document.createElement('i');
-                    el.setAttribute('data-lucide', name);
-                    ref.current.appendChild(el);
-                    window.lucide.createIcons({ elements:[el], attrs:{ class:className, ...(size&&{width:size,height:size}), ...(color&&{stroke:color}), ...(strokeWidth&&{'stroke-width':strokeWidth}) }, nameAttr:'data-lucide' });
-                }
-            }, [name, className, size, color, strokeWidth]);
-            return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
-        };
-
-        // ── VISUAL COMPONENTS ──────────────────────────────────────────────────────────
-        const VisualIngest = () => {
-            const [tick, setTick] = useState(0);
-            useEffect(() => { const t = setInterval(() => setTick(x => x+1), 400); return () => clearInterval(t); }, []);
-            const streams = ['B4 Red Band', 'B8 NIR Band', 'SWIR B11', 'Weather API', 'Shapefile Layer', 'Admin Boundary'];
-            return (
-                <div className="relative w-full h-full flex items-center justify-center" style={{minHeight:260}}>
-                    <div className="absolute top-4 right-8 flex flex-col items-center gap-1">
-                        <div className="w-12 h-12 bg-zinc-800 border border-green-500/30 rounded-xl flex items-center justify-center relative ping-ring">
-                            <LucideIcon name="satellite" className="w-6 h-6 text-green-400" />
-                        </div>
-                        <span className="text-[9px] font-mono text-green-500">SENTINEL-2</span>
-                    </div>
-                    <div className="flex flex-col gap-2 w-full px-2">
-                        {streams.map((s,i) => (
-                            <div key={s} className="flex items-center gap-2 text-[10px] font-mono" style={{animationDelay:`${i*80}ms`}}>
-                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${tick % (i+2) === 0 ? 'bg-green-500' : 'bg-green-500/30'}`} style={{transition:'background 0.1s'}}></div>
-                                <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                                    <div className="h-full bg-green-500/60 shimmer-bar" style={{width:`${60+i*6}%`}}></div>
-                                </div>
-                                <span className="text-slate-500 w-24 truncate">{s}</span>
-                                <span className="text-green-500">✓</span>
-                            </div>
-                        ))}
-                        <div className="mt-2 p-2 bg-green-500/5 border border-green-500/20 rounded-lg text-[10px] font-mono text-green-400 terminal-cursor">
-                            INGESTING 1,847 TILES @ 10m GSD...
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const VisualPreprocess = () => {
-            const [active, setActive] = useState(0);
-            useEffect(() => { const t = setInterval(() => setActive(x => (x+1)%3), 900); return () => clearInterval(t); }, []);
-            const panels = ['RAW TILE','CLOUD MASKED','NDVI INDEX'];
-            const colors = ['from-zinc-800','from-blue-900/40','from-green-900/40'];
-            const overlays = [
-                <div key="raw" className="absolute inset-0 opacity-20" style={{backgroundImage:'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)', backgroundSize:'8px 8px'}}></div>,
-                <div key="masked" className="absolute inset-0 flex items-center justify-center"><div className="w-16 h-16 rounded-full bg-white/10 border border-white/20"></div></div>,
-                <div key="ndvi" className="absolute inset-0" style={{background:'linear-gradient(135deg, #15803d 0%, #22c55e 40%, #eab308 70%, #ef4444 100%)', opacity:0.6}}></div>
-            ];
-            return (
-                <div className="flex gap-3 w-full items-center justify-center" style={{minHeight:260}}>
-                    {panels.map((p,i) => (
-                        <div key={p} className={`flex-1 relative rounded-xl overflow-hidden border transition-all duration-300 ${active===i?'border-green-500/60 shadow-[0_0_15px_rgba(34,197,94,0.2)]':'border-white/10'}`}
-                            style={{height:160, background:'#111'}}>
-                            <div className={`absolute inset-0 bg-gradient-to-br ${colors[i]} to-black/80`}></div>
-                            {overlays[i]}
-                            <div className="absolute bottom-2 left-2 right-2 text-[9px] font-mono text-slate-400">{p}</div>
-                            {active===i && <div className="scan-line"></div>}
-                        </div>
-                    ))}
-                </div>
-            );
-        };
-
-        const VisualStateDef = ({ states, stateColors }) => {
-            const [active, setActive] = useState(0);
-            useEffect(() => { const t = setInterval(() => setActive(x => (x+1)%states.length), 1200); return () => clearInterval(t); }, [states.length]);
-            const grid = useMemo(() => {
-                return Array.from({length:200}, () => Math.floor(Math.random()*states.length));
-            }, [states.length]);
-            return (
-                <div className="w-full" style={{minHeight:260}}>
-                    <div className="grid gap-1" style={{gridTemplateColumns:'repeat(20,1fr)'}}>
-                        {grid.map((s,i) => (
-                            <div key={i} className="rounded-[2px] transition-all duration-500"
-                                style={{height:10, background:active===s ? stateColors[s] : stateColors[s]+'33', opacity: active===s?1:0.4}}></div>
-                        ))}
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                        {states.map((s,i) => (
-                            <div key={s} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono border transition-all ${active===i?'border-current scale-105':''}`}
-                                style={{color:stateColors[i], borderColor:active===i?stateColors[i]:'transparent', background:`${stateColors[i]}15`}}>
-                                <div className="w-2 h-2 rounded-full" style={{background:stateColors[i]}}></div>
-                                {s}
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        const VisualRisk = ({ factors }) => {
-            const [score, setScore] = useState(0);
-            useEffect(() => {
-                let v = 0;
-                const t = setInterval(() => { v = Math.min(v+2, 88); setScore(v); if(v>=88) clearInterval(t); }, 30);
-                return () => clearInterval(t);
-            }, []);
-            const scoreColor = score >= 75 ? '#ef4444' : score >= 50 ? '#eab308' : '#22c55e';
-            return (
-                <div className="flex gap-4 items-start w-full" style={{minHeight:260}}>
-                    <div className="flex flex-col items-center gap-2">
-                        <div className="relative w-28 h-28">
-                            <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8"/>
-                                <circle cx="50" cy="50" r="40" fill="none" stroke={scoreColor} strokeWidth="8"
-                                    strokeDasharray={`${(score/100)*251.2} 251.2`} strokeLinecap="round" style={{transition:'stroke-dasharray 0.05s'}}/>
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-2xl font-black" style={{color:scoreColor}}>{score}</span>
-                                <span className="text-[9px] font-mono text-slate-500">RISK</span>
-                            </div>
-                        </div>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold" style={{background:`${scoreColor}20`,color:scoreColor}}>
-                            {score>=75?'HIGH RISK':score>=50?'MEDIUM':'LOW'}
-                        </span>
-                    </div>
-                    <div className="flex-1 space-y-2">
-                        {factors.map(f => (
-                            <div key={f.name}>
-                                <div className="flex justify-between text-[9px] font-mono mb-0.5">
-                                    <span className="text-slate-400">{f.name}</span>
-                                    <span style={{color:f.col}}>{f.weight}%</span>
-                                </div>
-                                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                    <div className="h-full rounded-full transition-all duration-1000" style={{width:`${f.weight}%`, background:f.col}}></div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        const VisualCompliance = ({ actions }) => {
-            const [revealed, setRevealed] = useState(0);
-            useEffect(() => {
-                const t = setInterval(() => setRevealed(x => Math.min(x+1, actions.length)), 600);
-                return () => clearInterval(t);
-            }, [actions.length]);
-            return (
-                <div className="w-full space-y-2" style={{minHeight:260}}>
-                    <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-mono text-red-400 mb-4">
-                        ⚠ RISK THRESHOLD EXCEEDED — ZONE: ARAVALLI-C — SCORE: 88/100
-                    </div>
-                    {actions.map((a,i) => (
-                        <div key={a.label} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-500 ${i<revealed?'border-green-500/30 bg-green-500/5':'border-white/5 bg-white/2 opacity-30'}`}>
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${i<revealed?'bg-green-500':'bg-zinc-800'}`}>
-                                {i<revealed ? <LucideIcon name="check" className="w-3 h-3 text-black" /> : <LucideIcon name={a.icon} className="w-3 h-3 text-slate-600" />}
-                            </div>
-                            <span className={`text-xs font-mono ${i<revealed?'text-white':'text-slate-600'}`}>{a.label}</span>
-                            {i<revealed && <span className="ml-auto text-[9px] text-green-500 font-mono">DONE</span>}
-                        </div>
-                    ))}
-                    {revealed >= actions.length && (
-                        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-[10px] font-mono text-green-400 mt-2">
-                            ✓ DOSSIER GENERATED — ENFORCEMENT TEAM NOTIFIED — LOG ID: {genId()}
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // ── FLOW DIAGRAM ───────────────────────────────────────────────────────────────
-        const FlowDiagram = ({ activeStage, stages, onSelect }) => (
-            <div className="relative w-full overflow-x-auto py-4">
-                <div className="flex items-center gap-0 min-w-max mx-auto px-4" style={{width:'max-content'}}>
-                    {stages.map((s, i) => (
-                        <React.Fragment key={s.id}>
-                            <button onClick={() => onSelect(i)}
-                                className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl transition-all border ${activeStage===i?'border-current bg-opacity-10 scale-105':'border-transparent hover:border-white/10'}`}
-                                style={{color:activeStage===i?s.color:'#64748b', background:activeStage===i?`${s.color}12`:'transparent'}}>
-                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all ${activeStage===i?'border-current':'border-zinc-700'}`}
-                                    style={{borderColor:activeStage===i?s.color:'#3f3f46', background:activeStage===i?`${s.color}20`:'#18181b'}}>
-                                    <LucideIcon name={s.icon} className="w-4 h-4" color={activeStage===i?s.color:'#64748b'} />
-                                </div>
-                                <span className="text-[9px] font-mono font-bold text-center leading-tight">{s.step}</span>
-                            </button>
-                            {i < stages.length-1 && (
-                                <div className="w-6 h-0.5 bg-gradient-to-r from-white/10 to-transparent"></div>
-                            )}
-                        </React.Fragment>
-                    ))}
-                </div>
+const VisualRisk = ({ factors }) => {
+  const [score, setScore] = useState(0);
+  useEffect(() => { let v=0; const t=setInterval(()=>{v=Math.min(v+2,88);setScore(v);if(v>=88)clearInterval(t);},30); return ()=>clearInterval(t); }, []);
+  const col = score>=75?'#ef4444':score>=50?'#eab308':'#22c55e';
+  return (
+    <div className="flex gap-4 items-start w-full">
+      <div className="flex flex-col items-center gap-2">
+        <div className="relative w-28 h-28">
+          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8"/>
+            <circle cx="50" cy="50" r="40" fill="none" stroke={col} strokeWidth="8" strokeDasharray={`${(score/100)*251.2} 251.2`} strokeLinecap="round" style={{transition:'stroke-dasharray 0.05s'}}/>
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="text-2xl font-black" style={{color:col}}>{score}</span>
+            <span className="text-[9px] font-mono text-slate-500">RISK</span>
+          </div>
+        </div>
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold" style={{background:`${col}20`,color:col}}>{score>=75?'HIGH RISK':score>=50?'MEDIUM':'LOW'}</span>
+      </div>
+      <div className="flex-1 space-y-2">
+        {factors.map(f => (
+          <div key={f.name}>
+            <div className="flex justify-between text-[9px] font-mono mb-0.5">
+              <span className="text-slate-400">{f.name}</span>
+              <span style={{color:f.col}}>{f.weight}%</span>
             </div>
-        );
+            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-1000" style={{width:`${f.weight}%`,background:f.col}}></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-        // ── MAIN PORTAL APP ────────────────────────────────────────────────────────────
-        const PortalApp = () => {
-            const [stage, setStage] = useState(0);
-            const [autoplay, setAutoplay] = useState(false);
-            const stageData = PIPELINE_STAGES[stage];
+const VisualCompliance = ({ actions }) => {
+  const [revealed, setRevealed] = useState(0);
+  useEffect(() => { const t=setInterval(()=>setRevealed(x=>Math.min(x+1,actions.length)),600); return ()=>clearInterval(t); }, [actions.length]);
+  return (
+    <div className="w-full space-y-2">
+      <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-mono text-red-400 mb-4">
+        ⚠ RISK THRESHOLD EXCEEDED — ZONE: ARAVALLI-C — SCORE: 88/100
+      </div>
+      {actions.map((a,i) => (
+        <div key={a.label} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-500 ${i<revealed?'border-green-500/30 bg-green-500/5':'border-white/5 opacity-30'}`}>
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${i<revealed?'bg-green-500':'bg-zinc-800'}`}>
+            {i<revealed ? <LucideIcon name="check" className="w-3 h-3 text-black"/> : <LucideIcon name={a.icon} className="w-3 h-3 text-slate-600"/>}
+          </div>
+          <span className={`text-xs font-mono ${i<revealed?'text-white':'text-slate-600'}`}>{a.label}</span>
+          {i<revealed && <span className="ml-auto text-[9px] text-green-500 font-mono">DONE</span>}
+        </div>
+      ))}
+      {revealed>=actions.length && (
+        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-[10px] font-mono text-green-400 mt-2">
+          ✓ DOSSIER GENERATED — ENFORCEMENT TEAM NOTIFIED — LOG ID: {genId()}
+        </div>
+      )}
+    </div>
+  );
+};
 
-            useEffect(() => {
-                if (!autoplay) return;
-                const t = setTimeout(() => {
-                    if (stage < PIPELINE_STAGES.length - 1) setStage(stage + 1);
-                    else setAutoplay(false);
-                }, 3000);
-                return () => clearTimeout(t);
-            }, [autoplay, stage]);
+const FlowDiagram = ({ activeStage, stages, onSelect }) => (
+  <div className="relative w-full overflow-x-auto py-4">
+    <div className="flex items-center gap-0 min-w-max mx-auto px-4">
+      {stages.map((s, i) => (
+        <React.Fragment key={s.id}>
+          <button onClick={() => onSelect(i)}
+            className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl transition-all border ${activeStage===i?'border-current scale-105':'border-transparent hover:border-white/10'}`}
+            style={{color:activeStage===i?s.color:'#64748b',background:activeStage===i?`${s.color}12`:'transparent'}}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all"
+              style={{borderColor:activeStage===i?s.color:'#3f3f46',background:activeStage===i?`${s.color}20`:'#18181b'}}>
+              <LucideIcon name={s.icon} className="w-4 h-4" color={activeStage===i?s.color:'#64748b'}/>
+            </div>
+            <span className="text-[9px] font-mono font-bold text-center leading-tight" style={{maxWidth:64}}>{s.step}<br/>{s.title}</span>
+          </button>
+          {i<stages.length-1 && (
+            <div className="flex items-center mx-1">
+              <svg width="32" height="12">
+                <line x1="0" y1="6" x2="26" y2="6" stroke={activeStage>i?stages[i].color:'#3f3f46'} strokeWidth="1.5" strokeDasharray="4 3" className={activeStage>i?'flow-arrow':''}/>
+                <polygon points="22,2 30,6 22,10" fill={activeStage>i?stages[i].color:'#3f3f46'}/>
+              </svg>
+            </div>
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  </div>
+);
 
-            const goNext = () => {
-                if (stage < PIPELINE_STAGES.length - 1) setStage(stage + 1);
-            };
+const SimulationScreen = ({ onComplete }) => {
+  const [stage, setStage] = useState(0);
+  const [autoplay, setAutoplay] = useState(true);
+  const [introPhase, setIntroPhase] = useState(true);
+  const [bootLines, setBootLines] = useState([]);
+  const stageData = PIPELINE_STAGES[stage];
 
-            const goPrev = () => {
-                if (stage > 0) setStage(stage - 1);
-            };
+  const BOOT_SEQUENCE = [
+    '> Initializing A.R.A.N.Y.A Geospatial Core...',
+    '> Loading Sentinel-2 data connectors... OK',
+    '> Mounting protected zone shapefiles... OK',
+    '> Establishing Weather API stream... OK',
+    '> Calibrating Change-Detection Transformer... OK',
+    '> Risk Emission Model loaded... OK',
+    '> Compliance Intelligence Engine online... OK',
+    '████████████████████ SYSTEM READY',
+  ];
 
-            const renderVisual = () => {
-                switch(stageData.visual) {
-                    case 'ingest': return <VisualIngest />;
-                    case 'preprocess': return <VisualPreprocess />;
-                    case 'state': return <VisualStateDef states={['Vegetation','Water','Urban','Mining Scar']} stateColors={['#22c55e','#3b82f6','#64748b','#f59e0b']} />;
-                    case 'risk': return <VisualRisk factors={stageData.factors} />;
-                    case 'compliance': return <VisualCompliance actions={stageData.actions} />;
-                    default: return null;
-                }
-            };
+  useEffect(() => {
+    if (!introPhase) return;
+    let i = 0;
+    const t = setInterval(() => {
+      if (i < BOOT_SEQUENCE.length) setBootLines(p => [...p, BOOT_SEQUENCE[i]]);
+      i++;
+      if (i >= BOOT_SEQUENCE.length) { clearInterval(t); setTimeout(() => setIntroPhase(false), 800); }
+    }, 320);
+    return () => clearInterval(t);
+  }, [introPhase]);
 
-            return (
-                <div className="min-h-screen bg-[#030303] pt-20 pb-10 px-4">
-                    {/* Header */}
-                    <div className="max-w-6xl mx-auto mb-6">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    <span className="text-green-500 font-mono text-xs tracking-widest uppercase">Pipeline Simulation — Interactive Walkthrough</span>
-                                </div>
-                                <h1 className="text-2xl md:text-3xl font-bold">How A.R.A.N.Y.A Works</h1>
-                                <p className="text-slate-500 text-sm mt-1">Step through the full end-to-end intelligence pipeline</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => { setAutoplay(p => !p); }}
-                                    className={`flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-xl border transition-all ${autoplay?'bg-green-500/10 border-green-500/30 text-green-400':'bg-white/5 border-white/10 text-slate-400'}`}>
-                                    <LucideIcon name={autoplay?'pause':'play'} className="w-3 h-3" />
-                                    {autoplay?'Auto':'Manual'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+  useEffect(() => {
+    if (introPhase || !autoplay) return;
+    const t = setInterval(() => {
+      setStage(s => { if (s >= PIPELINE_STAGES.length-1) { clearInterval(t); return s; } return s+1; });
+    }, 5500);
+    return () => clearInterval(t);
+  }, [autoplay, introPhase]);
 
-                    {/* Flow diagram */}
-                    <div className="max-w-6xl mx-auto mb-6 glass rounded-2xl border border-white/5 overflow-hidden">
-                        <FlowDiagram activeStage={stage} stages={PIPELINE_STAGES} onSelect={i => { setStage(i); setAutoplay(false); }} />
-                        <div className="px-4 pb-3">
-                            <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                                <div className="h-full bg-green-500 rounded-full transition-all duration-700" style={{width:`${((stage+1)/PIPELINE_STAGES.length)*100}%`}}></div>
-                            </div>
-                        </div>
-                    </div>
+  const goNext = () => { if (stage < PIPELINE_STAGES.length-1) { setStage(s=>s+1); setAutoplay(false); } else onComplete(); };
+  const goPrev = () => { if (stage > 0) { setStage(s=>s-1); setAutoplay(false); } };
 
-                    {/* Main content */}
-                    <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
-                        {/* Left: Stage Info */}
-                        <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-5 sim-stage" key={stage}>
-                            <div className="flex items-start gap-4">
-                                <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{background:`${stageData.color}15`, border:`2px solid ${stageData.color}40`}}>
-                                    <LucideIcon name={stageData.icon} className="w-6 h-6" color={stageData.color} />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-mono text-xs font-bold" style={{color:stageData.color}}>STAGE {stageData.step}</span>
-                                        <span className="w-px h-3 bg-white/20"></span>
-                                        <span className="text-slate-500 text-xs font-mono">of {PIPELINE_STAGES.length}</span>
-                                    </div>
-                                    <h2 className="text-xl font-bold text-white">{stageData.title}</h2>
-                                    <p className="text-xs font-mono text-slate-500 mt-0.5">{stageData.subtitle}</p>
-                                </div>
-                            </div>
+  const renderVisual = () => {
+    switch(stageData.id) {
+      case 'ingest': return <VisualIngest/>;
+      case 'preprocess': return <VisualPreprocess/>;
+      case 'statedef': return <VisualStateDef states={stageData.states} stateColors={stageData.stateColors}/>;
+      case 'risk': return <VisualRisk factors={stageData.factors}/>;
+      case 'compliance': return <VisualCompliance actions={stageData.actions}/>;
+      default: return null;
+    }
+  };
 
-                            <p className="text-sm text-slate-300 leading-relaxed">{stageData.description}</p>
+  if (introPhase) return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-8 pt-20">
+      <div className="w-full max-w-2xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="font-mono text-green-500 text-sm font-bold tracking-widest uppercase">A.R.A.N.Y.A System Boot</span>
+        </div>
+        <div className="bg-zinc-950 border border-green-500/20 rounded-2xl p-6 font-mono text-xs text-green-400 space-y-1.5" style={{minHeight:280}}>
+          {bootLines.map((line,i) => <div key={i} className="sim-stage"><span style={{color:line?.includes('READY')?'#22c55e':line?.includes('...')?'#94a3b8':'#22c55e'}}>{line}</span></div>)}
+          {bootLines.length>0 && bootLines.length<BOOT_SEQUENCE.length && <div className="terminal-cursor text-green-500">&nbsp;</div>}
+        </div>
+      </div>
+    </div>
+  );
 
-                            {stageData.dataPoints && (
-                                <div className="space-y-2">
-                                    {stageData.dataPoints.map(d => (
-                                        <div key={d.label} className="flex items-center gap-3 py-2 border-b border-white/5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
-                                            <span className="text-xs text-slate-300 flex-1">{d.label}</span>
-                                            <span className="text-xs font-mono text-slate-500">{d.val}</span>
-                                            <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{background:d.status==='LIVE'?'rgba(34,197,94,0.15)':'rgba(59,130,246,0.15)', color:d.status==='LIVE'?'#22c55e':'#60a5fa'}}>{d.status}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+  return (
+    <div className="min-h-screen bg-[#030303] pt-20 pb-10 px-4">
+      <div className="max-w-6xl mx-auto mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-500 font-mono text-xs tracking-widest uppercase">Pipeline Simulation</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold">How A.R.A.N.Y.A Works</h1>
+            <p className="text-slate-500 text-sm mt-1">Step through the full end-to-end intelligence pipeline</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setAutoplay(p=>!p)}
+              className={`flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-xl border transition-all ${autoplay?'bg-green-500/10 border-green-500/30 text-green-400':'bg-white/5 border-white/10 text-slate-400'}`}>
+              <LucideIcon name={autoplay?'pause':'play'} className="w-3 h-3"/> {autoplay?'Auto':'Manual'}
+            </button>
+            <button onClick={onComplete} className="flex items-center gap-2 bg-white text-black text-xs font-bold px-5 py-2 rounded-xl hover:bg-green-500 transition-colors">
+              Enter System <LucideIcon name="arrow-right" className="w-3 h-3"/>
+            </button>
+          </div>
+        </div>
+      </div>
 
-                            {stageData.metrics && (
-                                <div className="space-y-3">
-                                    {stageData.metrics.map(m => (
-                                        <div key={m.label}>
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span className="text-slate-400">{m.label}</span>
-                                                <span className="font-mono" style={{color:m.col}}>{m.pct}%</span>
-                                            </div>
-                                            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                <div className="h-full rounded-full" style={{width:`${m.pct}%`, background:m.col, transition:'width 1s ease'}}></div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+      <div className="max-w-6xl mx-auto mb-6 glass rounded-2xl border border-white/5 overflow-hidden">
+        <FlowDiagram activeStage={stage} stages={PIPELINE_STAGES} onSelect={i=>{setStage(i);setAutoplay(false);}}/>
+        <div className="px-4 pb-3">
+          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-green-500 rounded-full transition-all duration-700" style={{width:`${((stage+1)/PIPELINE_STAGES.length)*100}%`}}></div>
+          </div>
+        </div>
+      </div>
 
-                            {/* Navigation */}
-                            <div className="flex gap-3 mt-auto pt-4 border-t border-white/5">
-                                <button onClick={goPrev} disabled={stage===0}
-                                    className="flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 disabled:opacity-30 transition-all">
-                                    <LucideIcon name="arrow-left" className="w-3 h-3" /> Prev
-                                </button>
-                                <button onClick={goNext}
-                                    className="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl transition-all text-black"
-                                    style={{background:stageData.color}}>
-                                    {stage < PIPELINE_STAGES.length-1 ? <><span>Next Stage</span><LucideIcon name="arrow-right" className="w-3 h-3" /></> : <><span>Complete</span><LucideIcon name="check" className="w-3 h-3" /></>}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Right: Visual */}
-                        <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-4 overflow-hidden sim-stage" key={`vis-${stage}`}>
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Live Simulation</span>
-                                <div className="flex items-center gap-1.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-                                    <span className="text-[10px] font-mono text-green-500">RUNNING</span>
-                                </div>
-                            </div>
-                            <div className="flex-1">
-                                {renderVisual()}
-                            </div>
-
-                            {/* Context callout */}
-                            <div className="p-3 rounded-xl border text-xs font-mono" style={{background:`${stageData.color}08`, borderColor:`${stageData.color}25`, color:stageData.color}}>
-                                {stage===0 && '📡 Cartosat-2E + Sentinel-2 streams fused at 10m resolution, 5-day revisit cycle'}
-                                {stage===1 && '🔬 NDVI range [−0.1 → 0.9] computed per pixel — baseline Δ flagged if |ΔNDVI| > 0.15'}
-                                {stage===2 && '🗺 Vegetation → Mining Scar transition in Protected Zone = immediate HIGH PENALTY state'}
-                                {stage===3 && '📊 P(Illegal | Zₜ, ΔZₜ, proximity, rainfall) — Gradient Boosted Scoring Engine'}
-                                {stage===4 && '⚖ Forest Conservation Act §4(1) — Violation auto-tagged, dossier auto-generated'}
-                            </div>
-
-                            {/* Stage dots */}
-                            <div className="flex gap-2 justify-center pt-2">
-                                {PIPELINE_STAGES.map((_, i) => (
-                                    <button key={i} onClick={() => { setStage(i); setAutoplay(false); }}
-                                        className="w-2 h-2 rounded-full transition-all"
-                                        style={{background: i <= stage ? '#22c55e' : '#ffffff20'}}></button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
+      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
+        <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-5 sim-stage" key={stage}>
+          <div className="flex items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{background:`${stageData.color}15`,border:`2px solid ${stageData.color}40`}}>
+              <LucideIcon name={stageData.icon} className="w-6 h-6" color={stageData.color}/>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-mono text-xs font-bold" style={{color:stageData.color}}>STAGE {stageData.step}</span>
+                <span className="w-px h-3 bg-white/20"></span>
+                <span className="text-slate-500 text-xs font-mono">of {PIPELINE_STAGES.length}</span>
+              </div>
+              <h2 className="text-xl font-bold text-white">{stageData.title}</h2>
+              <p className="text-xs font-mono text-slate-500 mt-0.5">{stageData.subtitle}</p>
+            </div>
+          </div>
+          <p className="text-sm text-slate-300 leading-relaxed">{stageData.description}</p>
+          {stageData.dataPoints && (
+            <div className="space-y-2">
+              {stageData.dataPoints.map(d => (
+                <div key={d.label} className="flex items-center gap-3 py-2 border-b border-white/5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
+                  <span className="text-xs text-slate-300 flex-1">{d.label}</span>
+                  <span className="text-xs font-mono text-slate-500">{d.val}</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{background:d.status==='LIVE'?'rgba(34,197,94,0.15)':'rgba(59,130,246,0.15)',color:d.status==='LIVE'?'#22c55e':'#60a5fa'}}>{d.status}</span>
                 </div>
-            );
-        };
+              ))}
+            </div>
+          )}
+          {stageData.metrics && (
+            <div className="space-y-3">
+              {stageData.metrics.map(m => (
+                <div key={m.label}>
+                  <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">{m.label}</span><span className="font-mono" style={{color:m.col}}>{m.pct}%</span></div>
+                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${m.pct}%`,background:m.col,transition:'width 1s ease'}}></div></div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-3 mt-auto pt-4 border-t border-white/5">
+            <button onClick={goPrev} disabled={stage===0} className="flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 disabled:opacity-30 transition-all">
+              <LucideIcon name="arrow-left" className="w-3 h-3"/> Prev
+            </button>
+            <button onClick={goNext} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl text-black" style={{background:stageData.color}}>
+              {stage<PIPELINE_STAGES.length-1?<><span>Next Stage</span><LucideIcon name="arrow-right" className="w-3 h-3"/></>:<><span>Enter System</span><LucideIcon name="log-in" className="w-3 h-3"/></>}
+            </button>
+          </div>
+        </div>
 
-    </script>
+        <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-4 sim-stage" key={`v-${stage}`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Live Simulation</span>
+            <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div><span className="text-[10px] font-mono text-green-500">RUNNING</span></div>
+          </div>
+          <div className="flex-1">{renderVisual()}</div>
+          <div className="p-3 rounded-xl border text-xs font-mono" style={{background:`${stageData.color}08`,borderColor:`${stageData.color}25`,color:stageData.color}}>
+            {stage===0&&'📡 Cartosat-2E + Sentinel-2 streams fused at 10m resolution, 5-day revisit cycle'}
+            {stage===1&&'🔬 NDVI range [−0.1 → 0.9] computed per pixel — baseline Δ flagged if |ΔNDVI| > 0.15'}
+            {stage===2&&'🗺 Vegetation → Mining Scar transition in Protected Zone = HIGH PENALTY state'}
+            {stage===3&&'📊 P(Illegal | Zₜ, ΔZₜ, proximity, rainfall) — Gradient Boosted Scoring Engine'}
+            {stage===4&&'⚖ Forest Conservation Act §4(1) — Violation auto-tagged, dossier auto-generated'}
+          </div>
+          <div className="flex gap-2 justify-center pt-2">
+            {PIPELINE_STAGES.map((_,i) => (
+              <button key={i} onClick={()=>{setStage(i);setAutoplay(false);}} className="w-2 h-2 rounded-full transition-all"
+                style={{background:i===stage?stageData.color:'rgba(255,255,255,0.15)',transform:i===stage?'scale(1.5)':'scale(1)'}}></button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
+// ── LOGIN ─────────────────────────────────────────────────────────
+const LoginScreen = ({ onLogin }) => (
+  <div className="min-h-screen bg-black flex items-center justify-center px-6">
+    <div className="absolute inset-0 grid-bg opacity-20"></div>
+    <div className="grid md:grid-cols-2 gap-8 max-w-5xl w-full relative z-10">
+      <div onClick={() => onLogin('gov')}
+        className="p-10 glass rounded-3xl cursor-pointer group hover:border-green-500/50 transition-all border border-white/5">
+        <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-green-500 transition-colors">
+          <LucideIcon name="shield" className="w-8 h-8 text-green-500 group-hover:text-black transition-colors"/>
+        </div>
+        <h2 className="text-3xl font-bold text-white mb-4">Government Official</h2>
+        <p className="text-slate-400 mb-8">Access national surveillance dashboards, manage violations, and coordinate enforcement efforts.</p>
+        <div className="flex items-center gap-2 text-green-500 font-bold">Login with Digital ID <LucideIcon name="arrow-right" className="w-4 h-4"/></div>
+      </div>
+      <div onClick={() => onLogin('citizen')}
+        className="p-10 bg-white rounded-3xl cursor-pointer group hover:shadow-2xl transition-all">
+        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-blue-600 transition-colors">
+          <LucideIcon name="user" className="w-8 h-8 text-blue-600 group-hover:text-white transition-colors"/>
+        </div>
+        <h2 className="text-3xl font-bold text-slate-900 mb-4">Citizen Portal</h2>
+        <p className="text-slate-600 mb-8">Report environmental concerns, track investigation status, and view transparent impact scores.</p>
+        <div className="flex items-center gap-2 text-blue-600 font-bold">Login with Mobile <LucideIcon name="arrow-right" className="w-4 h-4"/></div>
+      </div>
+    </div>
+  </div>
+);
+
+// ── GOV DASHBOARD ─────────────────────────────────────────────────
+const GovDashboard = ({ reports, setReports, onLogout }) => {
+  const notify = useNotify();
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [activeNav, setActiveNav] = useState('map');
+  const [searchQ, setSearchQ] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [alerts, setAlerts] = useState([
+    {id:1,type:"CRITICAL",msg:"Illegal mining detected — Aravalli Zone C, Charkhi Dadri",time:"Just now",read:false},
+    {id:2,type:"WARNING",msg:"Vegetation loss above 15% — Pichopa Kalan, Bhiwani",time:"12m ago",read:false},
+    {id:3,type:"INFO",msg:"SatelliteCarto-4 revisit completed — Haryana belt",time:"1h ago",read:true},
+    {id:4,type:"WARNING",msg:"New citizen report — Rajawas Protected Forest",time:"2h ago",read:true},
+  ]);
+  const unread = alerts.filter(a=>!a.read).length;
+  const filteredReports = useMemo(() => reports.filter(r => {
+    const q = searchQ.toLowerCase();
+    return (r.topic.toLowerCase().includes(q)||r.id.toLowerCase().includes(q)||(r.zone||'').toLowerCase().includes(q)) && (filterStatus==='All'||r.status===filterStatus);
+  }), [reports, searchQ, filterStatus]);
+
+  const updateStatus = (id, status) => { setReports(p=>p.map(r=>r.id===id?{...r,status}:r)); setSelectedReport(p=>p&&p.id===id?{...p,status}:p); notify(`Status updated → ${status}`,'success'); };
+  const deleteReport = (id) => { setReports(p=>p.filter(r=>r.id!==id)); setSelectedReport(null); notify('Report removed','error'); };
+  const exportDossier = (rep) => {
+    const txt = `A.R.A.N.Y.A ENFORCEMENT DOSSIER\n${'='.repeat(40)}\nID: ${rep.id}\nDate: ${rep.date}\nTopic: ${rep.topic}\nZone: ${rep.zone||'—'}\nCoords: ${rep.coords}\nStatus: ${rep.status}\nRisk: ${rep.risk}%\nLoss: ${rep.loss}\n\nDESCRIPTION:\n${rep.description}\n\nGenerated: ${new Date().toLocaleString()}`;
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain'})); a.download = `${rep.id}-dossier.txt`; a.click();
+    notify('Dossier exported','success');
+  };
+
+  return (
+    <div className="min-h-screen bg-[#050505] text-slate-200 pt-20 flex" style={{height:'100vh'}}>
+      <div className="w-64 border-r border-white/5 p-4 flex-col gap-2 hidden lg:flex flex-shrink-0">
+        {[{id:'map',label:'Intelligence Map',icon:'map'},{id:'reports',label:'Compliance Reports',icon:'file-text'},{id:'analytics',label:'Impact Analytics',icon:'bar-chart-3'},{id:'alerts',label:'Enforcement Ops',icon:'bell',badge:unread}].map(item=>(
+          <button key={item.id} onClick={()=>setActiveNav(item.id)}
+            className={`p-3 rounded-xl flex items-center gap-3 w-full text-left transition-colors relative ${activeNav===item.id?'bg-green-500/10 text-green-500 font-semibold':'hover:bg-white/5 text-slate-400'}`} style={{fontSize:14}}>
+            <LucideIcon name={item.icon} className={`w-5 h-5 ${activeNav===item.id?'text-green-500':'text-slate-500'}`}/>{item.label}
+            {item.badge>0&&<span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{item.badge}</span>}
+          </button>
+        ))}
+        <div className="mt-auto p-3 hover:bg-red-500/10 text-red-500 rounded-xl flex items-center gap-3 cursor-pointer transition-colors" onClick={onLogout}>
+          <LucideIcon name="x" className="w-5 h-5"/> Terminate Session
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto">
+        <div className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-2xl border border-white/5 flex-wrap gap-3">
+          <div className="flex items-center gap-6 flex-wrap">
+            <div><span className="text-xs font-mono text-slate-500 uppercase">System Status</span><div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span className="font-bold text-white">ACTIVE OPS</span></div></div>
+            <div className="h-10 w-[1px] bg-white/10 hidden md:block"></div>
+            <div><span className="text-xs font-mono text-slate-500 uppercase">Satellite Stream</span><div className="font-bold text-white">CartoSat-2E — 0.8m GSD</div></div>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search reports…" className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none w-36 placeholder:text-slate-600"/>
+            <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="bg-zinc-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-300 outline-none cursor-pointer">
+              <option value="All">All Statuses</option>
+              {STATUSES.map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {activeNav==='map' && (
+          <div className="grid lg:grid-cols-3 gap-6 flex-1">
+            <div className="lg:col-span-2 glass rounded-3xl relative overflow-hidden border border-white/5" style={{minHeight:400}}>
+              <div className="absolute top-4 left-4 z-10 flex gap-2">
+                <span className="bg-black/80 px-3 py-1 rounded text-[10px] font-bold border border-white/10">VISIBLE SPECTRUM</span>
+                <span className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-[10px] font-bold border border-red-500/30">RISK HEATMAP</span>
+              </div>
+              <div className="absolute inset-0 bg-[#0a0a0a]">
+                <svg className="w-full h-full opacity-30" viewBox="0 0 800 600">
+                  <path d="M100 100 Q 200 50 400 150 T 700 100" fill="none" stroke="#22c55e" strokeWidth="1"/>
+                  <path d="M50 400 Q 300 450 500 300 T 750 500" fill="none" stroke="#22c55e" strokeWidth="0.5"/>
+                  <circle cx="200" cy="150" r="100" fill="rgba(220,38,38,0.1)"/>
+                  <circle cx="200" cy="150" r="40" fill="rgba(220,38,38,0.2)"/>
+                  <circle cx="500" cy="350" r="60" fill="rgba(220,38,38,0.15)"/>
+                </svg>
+                {reports.map((rep,i)=>{
+                  const positions=[{top:'140px',left:'190px'},{bottom:'240px',left:'490px'},{top:'220px',left:'360px'},{top:'300px',left:'560px'}];
+                  const pos=positions[i%positions.length];
+                  const col=rep.risk>=75?'bg-red-600':rep.risk>=50?'bg-yellow-500':'bg-green-500';
+                  return (
+                    <div key={rep.id} className="absolute cursor-pointer" style={{...pos,zIndex:5}} onClick={()=>setSelectedReport(rep)}>
+                      <div className={`w-4 h-4 ${col} rounded-full border-2 border-white shadow-lg`}></div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="absolute bottom-4 right-4 z-10">
+                <div className="bg-black/80 p-4 rounded-xl border border-white/10 w-64 space-y-2">
+                  <div className="flex justify-between text-xs font-mono"><span>Monitoring Zone:</span><span className="text-green-500">Haryana Aravali Belt</span></div>
+                  <div className="w-full bg-white/5 h-1 rounded overflow-hidden"><div className="bg-green-500 h-full w-2/3"></div></div>
+                  <p className="text-[10px] text-slate-500 italic font-mono">Scanning for pixel delta &gt; 15%</p>
+                </div>
+              </div>
+              <div className="scan-line"></div>
+            </div>
+            <div className="glass rounded-3xl p-6 border border-white/5 flex flex-col gap-6 overflow-y-auto">
+              <h3 className="font-bold flex items-center gap-2"><LucideIcon name="bell" className="w-4 h-4 text-green-500"/> Intelligence Feed</h3>
+              {alerts.map(alert=>(
+                <div key={alert.id} onClick={()=>setAlerts(p=>p.map(a=>a.id===alert.id?{...a,read:true}:a))}
+                  className={`p-4 bg-zinc-900 border rounded-xl cursor-pointer transition-all ${alert.read?'border-white/5 opacity-60':'border-white/10'}`}>
+                  <div className="flex justify-between items-start mb-1">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${alert.type==='CRITICAL'?'bg-red-500/20 text-red-500':'bg-yellow-500/20 text-yellow-500'}`}>{alert.type}</span>
+                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-mono text-slate-600">{alert.time}</span>{!alert.read&&<div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>}</div>
+                  </div>
+                  <p className="text-sm font-medium leading-tight">{alert.msg}</p>
+                </div>
+              ))}
+              <div className="mt-auto pt-4 border-t border-white/5 space-y-3">
+                <h4 className="text-xs font-mono text-slate-500 uppercase">Recent Violations</h4>
+                {filteredReports.map(rep=>(
+                  <div key={rep.id} onClick={()=>setSelectedReport(rep)} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer">
+                    <div className="w-10 h-10 bg-zinc-800 rounded flex items-center justify-center text-xs font-bold text-red-400">{rep.risk}%</div>
+                    <div className="flex-1 overflow-hidden"><div className="text-xs font-bold truncate">{rep.topic}</div><div className="text-[10px] text-slate-500 font-mono">{rep.id}</div></div>
+                    <LucideIcon name="chevron-right" className="w-4 h-4 text-slate-700"/>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeNav==='reports' && (
+          <div className="flex flex-col gap-4">
+            <h2 className="text-xl font-bold">Compliance Reports <span className="text-slate-600 font-normal text-sm">({filteredReports.length})</span></h2>
+            <div className="glass rounded-2xl border border-white/5 overflow-hidden">
+              <table className="w-full" style={{borderCollapse:'collapse'}}>
+                <thead><tr className="border-b border-white/5">{['ID','Topic','Zone','Risk','Status','Date','Actions'].map(h=><th key={h} className="px-4 py-3 text-left text-[10px] font-mono text-slate-500 uppercase">{h}</th>)}</tr></thead>
+                <tbody>
+                  {filteredReports.length===0&&<tr><td colSpan={7} className="text-center py-10 text-slate-600 text-sm italic">No reports match.</td></tr>}
+                  {filteredReports.map(rep=>(
+                    <tr key={rep.id} onClick={()=>setSelectedReport(rep)} className="border-b border-white/5 hover:bg-white/2 transition-colors cursor-pointer">
+                      <td className="px-4 py-3 text-green-500 font-mono text-xs">{rep.id}</td>
+                      <td className="px-4 py-3 text-sm font-semibold">{rep.topic}</td>
+                      <td className="px-4 py-3 text-xs text-slate-400">{rep.zone||'—'}</td>
+                      <td className="px-4 py-3 text-sm font-bold" style={{color:rep.risk>=75?'#ef4444':rep.risk>=50?'#eab308':'#22c55e'}}>{rep.risk}%</td>
+                      <td className="px-4 py-3"><span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{background:rep.status==='Resolved'?'rgba(34,197,94,0.15)':rep.status==='Under Investigation'?'rgba(239,68,68,0.15)':'rgba(234,179,8,0.15)',color:rep.status==='Resolved'?'#22c55e':rep.status==='Under Investigation'?'#ef4444':'#eab308'}}>{rep.status}</span></td>
+                      <td className="px-4 py-3 text-xs text-slate-500 font-mono">{rep.date}</td>
+                      <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
+                        <div className="flex gap-2">
+                          <button onClick={()=>exportDossier(rep)} className="p-1.5 bg-green-500/10 hover:bg-green-500/20 rounded"><LucideIcon name="download" className="w-3 h-3 text-green-500"/></button>
+                          <button onClick={()=>deleteReport(rep.id)} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 rounded"><LucideIcon name="trash" className="w-3 h-3 text-red-500"/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeNav==='analytics' && (
+          <div className="flex flex-col gap-6">
+            <h2 className="text-xl font-bold">Impact Analytics</h2>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="glass rounded-2xl p-6 border border-white/5">
+                <h3 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-4">Violation Types</h3>
+                {VIOLATION_TYPES.map(type=>{const c=reports.filter(r=>r.violationType===type).length;if(!c)return null;return(<div key={type} className="mb-3"><div className="flex justify-between text-xs mb-1"><span className="text-slate-300">{type}</span><span className="text-green-500 font-mono">{c}</span></div><div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-green-500 rounded-full" style={{width:`${(c/reports.length)*100}%`}}></div></div></div>);})}
+              </div>
+              <div className="glass rounded-2xl p-6 border border-white/5">
+                <h3 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-4">Status Summary</h3>
+                {STATUSES.map(status=>{const c=reports.filter(r=>r.status===status).length;if(!c)return null;const col=status==='Resolved'?'#22c55e':status==='Under Investigation'?'#ef4444':'#eab308';return(<div key={status} className="mb-3"><div className="flex justify-between text-xs mb-1"><span className="text-slate-300">{status}</span><span className="font-mono" style={{color:col}}>{c}</span></div><div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${(c/reports.length)*100}%`,background:col}}></div></div></div>);})}
+              </div>
+              <div className="glass rounded-2xl p-6 border border-white/5">
+                <h3 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-4">Risk Overview</h3>
+                {[['High (75%+)',r=>r.risk>=75,'#ef4444'],['Medium (50-74%)',r=>r.risk>=50&&r.risk<75,'#eab308'],['Low (<50%)',r=>r.risk<50,'#22c55e']].map(([label,fn,col])=>{const c=reports.filter(fn).length;return(<div key={label} className="flex items-center gap-3 mb-3"><div className="w-3 h-3 rounded-full flex-shrink-0" style={{background:col}}></div><span className="text-xs text-slate-300 flex-1">{label}</span><span className="font-mono text-xs" style={{color:col}}>{c}</span></div>);})}
+                <div className="mt-4 pt-4 border-t border-white/5"><div className="text-[10px] text-slate-500 font-mono">TOTAL REPORTS</div><div className="text-3xl font-bold">{reports.length}</div></div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeNav==='alerts' && (
+          <div className="flex flex-col gap-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold">Enforcement Ops</h2>
+              <button onClick={()=>setAlerts(p=>p.map(a=>({...a,read:true})))} className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-4 py-2 rounded-lg hover:bg-green-500/20 transition-colors">Mark All Read</button>
+            </div>
+            {alerts.map(alert=>(
+              <div key={alert.id} onClick={()=>setAlerts(p=>p.map(a=>a.id===alert.id?{...a,read:true}:a))}
+                className={`p-5 glass border rounded-2xl cursor-pointer transition-all ${alert.read?'border-white/5 opacity-60':'border-white/10'}`}>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${alert.type==='CRITICAL'?'bg-red-500/15':alert.type==='WARNING'?'bg-yellow-500/15':'bg-blue-500/15'}`}>
+                      <LucideIcon name={alert.type==='INFO'?'info':'alert-triangle'} className="w-4 h-4" color={alert.type==='CRITICAL'?'#ef4444':alert.type==='WARNING'?'#eab308':'#3b82f6'}/>
+                    </div>
+                    <div>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 inline-block ${alert.type==='CRITICAL'?'bg-red-500/20 text-red-500':alert.type==='WARNING'?'bg-yellow-500/20 text-yellow-500':'bg-blue-500/20 text-blue-400'}`}>{alert.type}</span>
+                      <p className={`text-sm font-medium ${!alert.read?'text-white':'text-slate-400'}`}>{alert.msg}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2"><span className="text-[10px] font-mono text-slate-600">{alert.time}</span>{!alert.read&&<div className="w-2 h-2 bg-green-500 rounded-full"></div>}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedReport && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
+          onClick={e=>{if(e.target===e.currentTarget)setSelectedReport(null);}}>
+          <div className="bg-zinc-900 border border-white/10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-8 shadow-2xl relative">
+            <button onClick={()=>setSelectedReport(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full"><LucideIcon name="x" className="w-6 h-6"/></button>
+            <div className="flex flex-col md:flex-row gap-8">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-4 flex-wrap">
+                  <span className="bg-green-500 text-black px-2 py-0.5 rounded text-[10px] font-bold">GOVERNMENT INTEL</span>
+                  <span className="text-slate-500 font-mono text-xs">{selectedReport.id}</span>
+                  {selectedReport.violationType&&<span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">{selectedReport.violationType}</span>}
+                </div>
+                <h2 className="text-3xl font-bold mb-2 text-white">{selectedReport.topic}</h2>
+                <div className="flex items-center gap-2 text-slate-400 text-sm mb-8"><LucideIcon name="map-pin" className="w-4 h-4"/> {selectedReport.coords}{selectedReport.zone&&` • ${selectedReport.zone}`}</div>
+                <div className="grid grid-cols-2 gap-4 mb-8">
+                  {[{label:'Vegetation Loss',val:selectedReport.loss,col:'text-red-500'},{label:'Risk Score',val:selectedReport.risk+'%',col:'text-red-500'},{label:'Reported By',val:selectedReport.citizen,col:'text-blue-400'},{label:'Date Filed',val:selectedReport.date,col:'text-green-400'}].map(({label,val,col})=>(
+                    <div key={label} className="p-4 bg-black/30 rounded-2xl border border-white/5"><span className="text-[10px] font-mono text-slate-500 block uppercase mb-1">{label}</span><div className={`text-2xl font-bold ${col}`}>{val}</div></div>
+                  ))}
+                </div>
+                <div className="space-y-4 mb-6">
+                  <h4 className="font-bold border-b border-white/5 pb-2 text-white">Intelligence Summary</h4>
+                  <p className="text-slate-400 text-sm italic">"{selectedReport.description}"</p>
+                  <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl text-xs text-blue-200 leading-relaxed"><strong>AI ASSESSMENT:</strong> Anomalous topographical excavation detected. High-frequency truck traffic identified between 22:00–04:00 IST. Potential violation of Forest Conservation Act §4(1) and NGT OA 362/2022.</div>
+                </div>
+                <div className="mb-6">
+                  <h4 className="text-xs font-mono text-slate-500 uppercase mb-3">Update Status</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {STATUSES.map(s=>(
+                      <button key={s} onClick={()=>updateStatus(selectedReport.id,s)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border"
+                        style={{background:selectedReport.status===s?'#22c55e':'rgba(255,255,255,0.04)',color:selectedReport.status===s?'#000':'#94a3b8',borderColor:selectedReport.status===s?'#22c55e':'rgba(255,255,255,0.08)'}}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <button onClick={()=>exportDossier(selectedReport)} className="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-green-500 transition-colors flex items-center justify-center gap-2"><LucideIcon name="download" className="w-4 h-4"/> Export Dossier</button>
+                  <button onClick={()=>deleteReport(selectedReport.id)} className="glass border border-red-500/20 py-3 px-5 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors"><LucideIcon name="trash" className="w-4 h-4 text-red-400"/></button>
+                </div>
+              </div>
+              <div className="w-full md:w-[280px] space-y-4">
+                <div className="bg-zinc-800/50 p-4 rounded-2xl space-y-3">
+                  <h4 className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Enforcement Status</h4>
+                  {[{label:'Report Received',done:true,date:selectedReport.date},{label:'Satellite Confirmed',done:selectedReport.risk>40,date:'Automated'},{label:'Under Review',done:['Under Review','Under Investigation','Resolved','Closed'].includes(selectedReport.status)},{label:'Investigation Started',done:['Under Investigation','Resolved','Closed'].includes(selectedReport.status)},{label:'Resolved',done:['Resolved','Closed'].includes(selectedReport.status)}].map((step,i)=>(
+                    <div key={i} className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full border-4 border-zinc-900 flex items-center justify-center flex-shrink-0 ${step.done?'bg-green-500':'bg-zinc-700'}`}>
+                        {step.done&&<LucideIcon name="check" className="w-3 h-3 text-white"/>}
+                      </div>
+                      <div><div className={`text-sm font-bold ${step.done?'text-white':'text-slate-600'}`}>{step.label}</div>{step.date&&<div className="text-[10px] text-slate-500">{step.date}</div>}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── CITIZEN PORTAL ────────────────────────────────────────────────
+const CitizenPortal = ({ reports, setReports }) => {
+  const notify = useNotify();
+  const [tab, setTab] = useState('report');
+  const [myIds, setMyIds] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [expanded, setExpanded] = useState(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [form, setForm] = useState({description:'',topic:'',violationType:'',zone:'',lat:'',lng:''});
+
+  const captureGPS = () => {
+    setGpsLoading(true);
+    const done = (lat,lng) => { setForm(f=>({...f,lat,lng})); setGpsLoading(false); notify('Location captured!','success'); };
+    if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>done(p.coords.latitude.toFixed(4),p.coords.longitude.toFixed(4)),()=>done((26.5+Math.random()*3).toFixed(4),(75.5+Math.random()*2.5).toFixed(4)));
+    else done((26.5+Math.random()*3).toFixed(4),(75.5+Math.random()*2.5).toFixed(4));
+  };
+
+  const handleReport = e => {
+    e.preventDefault();
+    if(!form.description||!form.topic||!form.violationType||!form.zone){notify('Please fill all required fields','error');return;}
+    setSubmitting(true);
+    setTimeout(()=>{
+      const rep={id:genId(),topic:form.topic,coords:form.lat&&form.lng?`${form.lat}° N, ${form.lng}° E`:'28.6139° N, 77.2090° E',lat:parseFloat(form.lat)||28.6139,lng:parseFloat(form.lng)||77.2090,status:'Pending Review',risk:Math.floor(Math.random()*40)+30,loss:`${(Math.random()*10+1).toFixed(1)}%`,date:new Date().toISOString().split('T')[0],citizen:'Anonymous Citizen',description:form.description,zone:form.zone,violationType:form.violationType};
+      setReports(p=>[rep,...p]);setMyIds(p=>[rep.id,...p]);setSubmitting(false);setSubmitted(true);
+      setForm({description:'',topic:'',violationType:'',zone:'',lat:'',lng:''});
+      notify('Report submitted successfully!','success');
+      setTimeout(()=>{setSubmitted(false);setTab('track');},2500);
+    },1800);
+  };
+
+  const myReports = reports.filter(r=>myIds.includes(r.id));
+  const stepsFor = rep => [
+    {label:'Submitted',done:true,date:rep.date},{label:'Viewed by Authority',done:['Under Review','Under Investigation','Resolved','Closed'].includes(rep.status)},{label:'AI Analysis Complete',done:['Under Review','Under Investigation','Resolved','Closed'].includes(rep.status),date:'Automated'},{label:'Investigation Started',done:['Under Investigation','Resolved','Closed'].includes(rep.status)},{label:'Resolved',done:['Resolved','Closed'].includes(rep.status)}
+  ];
+
+  return (
+    <div className="min-h-screen bg-slate-50 pt-24 pb-12 px-6">
+      <div className="max-w-4xl mx-auto">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Citizen Empowerment Portal</h1><p className="text-slate-500">Transparent environmental governance at your fingertips.</p></div>
+          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+            {[['report','New Complaint'],['track','Track Status'],['public','All Reports']].map(([id,label])=>(
+              <button key={id} onClick={()=>setTab(id)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${tab===id?'bg-blue-600 text-white shadow-md':'text-slate-600'}`}>{label}</button>
+            ))}
+          </div>
+        </header>
+        <div className="grid md:grid-cols-3 gap-8">
+          <div className="md:col-span-2 space-y-6">
+            {tab==='report' && (
+              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
+                {submitted ? (
+                  <div className="text-center py-10">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><LucideIcon name="check-circle-2" className="w-8 h-8 text-green-500"/></div>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">Report Submitted Successfully</h3>
+                    <p className="text-slate-500 text-sm">Redirecting to tracking…</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleReport} className="space-y-5">
+                    <h3 className="text-xl font-bold text-slate-800">Report an Observation</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Title *</label><input required value={form.topic} onChange={e=>setForm(f=>({...f,topic:e.target.value}))} placeholder="E.g., Illegal tree felling" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Violation Type *</label><select required value={form.violationType} onChange={e=>setForm(f=>({...f,violationType:e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-sm outline-none cursor-pointer"><option value="">Select…</option>{VIOLATION_TYPES.map(v=><option key={v}>{v}</option>)}</select></div>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Forest Zone *</label><select required value={form.zone} onChange={e=>setForm(f=>({...f,zone:e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-sm outline-none cursor-pointer"><option value="">Select zone…</option>{ZONES.map(z=><option key={z}>{z}</option>)}</select></div>
+                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Location</label><div onClick={captureGPS} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3 cursor-pointer hover:bg-slate-100"><LucideIcon name="map-pin" className="w-4 h-4 text-blue-600"/><span className="text-xs font-medium text-slate-400 italic">{gpsLoading?'Detecting…':form.lat?`${form.lat}° N`:'Auto-detect GPS…'}</span></div></div>
+                    </div>
+                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Description *</label><textarea required value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="What are you seeing?" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 h-32 focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none"></textarea></div>
+                    <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+                      {submitting?<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Submitting…</>:'Finalize & Send Report'}
+                    </button>
+                  </form>
+                )}
+              </div>
+            )}
+            {tab==='track' && (
+              <div className="space-y-4">
+                {myReports.length===0?(<div className="bg-white p-12 rounded-3xl border border-slate-200 text-center"><p className="text-slate-400 text-sm mb-4">No reports submitted yet.</p><button onClick={()=>setTab('report')} className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">Submit a Report</button></div>):myReports.map(rep=>(
+                  <div key={rep.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <div className="flex justify-between items-start mb-4">
+                      <div><span className="text-[10px] font-mono text-slate-400">{rep.id}</span><h3 className="font-bold text-lg text-slate-800">{rep.topic}</h3><p className="text-xs text-slate-400">{rep.zone} • {rep.date}</p></div>
+                      <div className="flex items-center gap-2"><span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">{rep.status}</span><button onClick={()=>setExpanded(expanded===rep.id?null:rep.id)} className="text-xs text-slate-400 hover:text-slate-600">{expanded===rep.id?'Hide':'Details'}</button></div>
+                    </div>
+                    {expanded===rep.id && (<div className="relative pt-6"><div className="absolute top-0 left-4 w-0.5 h-full bg-slate-100"></div>{stepsFor(rep).map((step,idx)=>(<div key={idx} className="flex gap-4 mb-4 relative z-10"><div className={`w-8 h-8 rounded-full border-4 border-white flex items-center justify-center ${step.done?'bg-green-500':'bg-slate-200'}`}>{step.done&&<LucideIcon name="check-circle-2" className="w-4 h-4 text-white"/>}</div><div><div className={`text-sm font-bold ${step.done?'text-slate-800':'text-slate-400'}`}>{step.label}</div>{step.date&&<div className="text-[10px] text-slate-400">{step.date}</div>}</div></div>))}</div>)}
+                  </div>
+                ))}
+              </div>
+            )}
+            {tab==='public' && (
+              <div className="space-y-4">
+                <h3 className="font-bold text-slate-800">All Reported Incidents ({reports.length})</h3>
+                {reports.map(rep=>(
+                  <div key={rep.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div><span className="text-[10px] font-mono text-slate-400">{rep.id}</span><h3 className="font-bold text-lg text-slate-800">{rep.topic}</h3><p className="text-xs text-slate-400">{rep.zone||'—'} • {rep.violationType||'—'} • {rep.date}</p></div>
+                      <div className="flex items-center gap-2"><span className="text-xs font-bold px-2 py-1 rounded-full" style={{background:rep.risk>=75?'#fee2e2':rep.risk>=50?'#fef9c3':'#dcfce7',color:rep.risk>=75?'#b91c1c':rep.risk>=50?'#a16207':'#15803d'}}>{rep.risk}% risk</span><span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">{rep.status}</span></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="space-y-6 text-slate-800">
+            <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4"><h4 className="text-sm font-bold">Why Transparency Matters</h4><p className="text-xs text-slate-500 leading-relaxed">Every observation submitted is backed by satellite auditing via ARANYA's detection core. Your report becomes official evidence in NGT proceedings.</p><div className="p-4 bg-slate-50 rounded-2xl flex items-center gap-3"><LucideIcon name="shield" className="w-8 h-8 text-blue-600"/><div className="text-xs text-slate-700 font-medium">Classed as Official Evidence</div></div></div>
+            <div className="bg-slate-900 p-6 rounded-3xl text-white space-y-4 shadow-xl">
+              <h4 className="text-sm font-bold">Community Impact</h4>
+              <div className="flex items-center gap-4"><div className="text-2xl font-black text-green-500">{reports.filter(r=>['Resolved','Closed'].includes(r.status)).length||'0'}</div><div className="text-[10px] text-slate-400 leading-tight uppercase font-mono">Cases Resolved This Quarter</div></div>
+              <div className="flex items-center gap-4"><div className="text-2xl font-black text-blue-400">{reports.length}</div><div className="text-[10px] text-slate-400 leading-tight uppercase font-mono">Total Reports Filed</div></div>
+              <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden"><div className="bg-green-500 h-full transition-all duration-700" style={{width:`${reports.length>0?Math.round(reports.filter(r=>['Resolved','Closed'].includes(r.status)).length/reports.length*100):0}%`}}></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── APP ───────────────────────────────────────────────────────────
+const App = () => {
+  const [view, setView] = useState('simulation');
+  const [userRole, setUserRole] = useState(null);
+  const [reports, setReports] = useState(INITIAL_REPORTS);
+
+  const handleLogin = role => { setUserRole(role); setView(role); };
+  const handleLogout = () => { setUserRole(null); };
+
+  useEffect(() => { if(window.lucide) window.lucide.createIcons(); }, [view]);
+
+  return (
+    <NotificationProvider>
+      <div className="min-h-screen">
+        <Navigation setView={setView} userRole={userRole} onLogout={handleLogout}/>
+        {view==='simulation' && <SimulationScreen onComplete={() => setView('login')}/>}
+        {view==='login' && <LoginScreen onLogin={handleLogin}/>}
+        {view==='gov' && <GovDashboard reports={reports} setReports={setReports} onLogout={handleLogout}/>}
+        {view==='citizen' && <CitizenPortal reports={reports} setReports={setReports} onLogout={handleLogout}/>}
+      </div>
+    </NotificationProvider>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('app-root')).render(<App/>);
+</script>
 </body>
 </html>
