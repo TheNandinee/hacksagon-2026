@@ -4,641 +4,673 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ARANYA | Autonomous Real-time Analytics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --green-primary: #1f6f5c;
-            --green-accent: #2ecc71;
-            --cyan-highlight: #7fe7dc;
-            --black: #000000;
-            --green-dim: #16a085;
-            --green-muted: #0e4d3a;
+            --gp:  #1f6f5c;   /* green primary   */
+            --ga:  #2ecc71;   /* green accent    */
+            --ch:  #7fe7dc;   /* cyan highlight  */
+            --bk:  #000000;   /* black           */
+            --gd:  #16a085;   /* green dim       */
+            --gm:  #0e4d3a;   /* green muted     */
         }
 
         body, html {
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             overflow-x: hidden;
-            background-color: var(--black);
-            font-family: 'Courier New', monospace;
-            color: var(--green-accent);
+            background: var(--bk);
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            color: var(--ga);
             scroll-behavior: smooth;
         }
 
+        /* ─────────────────────────────── FIXED LAYERS ── */
+
         #canvas-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            z-index: 1;
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100vh; z-index: 1;
         }
 
-        /* Vignette Effect */
         #vignette {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
-            background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.65) 100%);
-            z-index: 2;
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100vh; z-index: 2;
+            background: radial-gradient(ellipse at center,
+                transparent 25%, rgba(0,0,0,0.45) 65%, rgba(0,0,0,0.88) 100%);
             pointer-events: none;
         }
 
-        /* Scanlines Effect */
+        /* Subtle hex-grid instead of square grid */
+        #hud-grid {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100vh; z-index: 3;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(31,111,92,0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(31,111,92,0.035) 1px, transparent 1px);
+            background-size: 72px 72px;
+        }
+
         #scanlines {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100vh; z-index: 4;
+            pointer-events: none;
             background: repeating-linear-gradient(
                 0deg,
-                rgba(31, 111, 92, 0.025),
-                rgba(31, 111, 92, 0.025) 1px,
-                transparent 1px,
-                transparent 2px
+                rgba(31,111,92,0.018) 0px, rgba(31,111,92,0.018) 1px,
+                transparent 1px, transparent 3px
             );
-            z-index: 3;
-            pointer-events: none;
-            animation: scanlineShift 8s linear infinite;
+            animation: scanlineShift 10s linear infinite;
         }
-
         @keyframes scanlineShift {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(10px); }
+            0%   { transform: translateY(0); }
+            100% { transform: translateY(12px); }
         }
 
-        #scroll-content {
-            position: relative;
-            z-index: 10;
-            width: 100%;
+        /* ── HUD corners ── */
+        .hud-corner {
+            position: fixed; z-index: 7;
+            width: 52px; height: 52px;
+            pointer-events: none; opacity: 0.38;
+        }
+        .hud-corner svg { width: 100%; height: 100%; }
+        .hud-corner.tl { top: 20px; left: 20px; }
+        .hud-corner.tr { top: 20px; right: 20px;  transform: scaleX(-1); }
+        .hud-corner.bl { bottom: 20px; left: 20px; transform: scaleY(-1); }
+        .hud-corner.br { bottom: 20px; right: 20px; transform: scale(-1,-1); }
+
+        /* ── HUD top bar ── */
+        #hud-top {
+            position: fixed; top: 18px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 8; pointer-events: none;
+            display: flex; align-items: center; gap: 18px;
+            font-size: 0.58rem; letter-spacing: 0.24em;
+            color: var(--gp); text-transform: uppercase;
+            white-space: nowrap;
+        }
+        #hud-top .sep { color: var(--gm); }
+        #hud-top .hi  { color: var(--ga); }
+        #hud-live {
+            width: 6px; height: 6px;
+            border-radius: 50%; background: var(--ga);
+            box-shadow: 0 0 6px var(--ga);
+            animation: blink 1.4s infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+        /* ── HUD coords (bottom-right) ── */
+        #hud-coords {
+            position: fixed; bottom: 72px; right: 26px;
+            z-index: 8; pointer-events: none;
+            font-size: 0.56rem; letter-spacing: 0.14em;
+            color: var(--gp); line-height: 2; text-align: right;
         }
 
-        /* Each scene is 2× viewport so scroll lingers */
-        .scroll-section {
-            width: 100%;
-            height: 200vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
+        /* ── Telemetry ticks (left) ── */
+        #hud-telem {
+            position: fixed; left: 26px; top: 50%;
+            transform: translateY(-50%);
+            z-index: 8; pointer-events: none;
+            font-size: 0.52rem; letter-spacing: 0.12em;
+            color: var(--gm); line-height: 2.2;
         }
+        #hud-telem .val { color: var(--gp); }
 
-        /* Sticky inner so content stays pinned while scrolling through the section */
+        /* ─────────────────────────────── SCROLL CONTENT ── */
+        #scroll-content { position: relative; z-index: 10; width: 100%; }
+
+        #scene1, #scene2 { height: 200vh; }
+        #scene3           { height: 300vh; }
+        #scene4           { height: 200vh; }
+        #scene5           { height: 220vh; }
+        .spacer           { height: 50vh; }
+
         .sticky-inner {
-            position: sticky;
-            top: 0;
-            height: 100vh;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            position: sticky; top: 0;
+            height: 100vh; width: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
         }
 
         .content-box {
             text-align: center;
-            max-width: 1000px;
-            padding: 40px;
-            opacity: 0;
-            pointer-events: none;
-            width: 100%;
+            max-width: 1040px; width: 100%;
+            padding: 40px 24px;
+            opacity: 0; pointer-events: none;
         }
 
-        /* Terminal-style text glow — softer with new palette */
-        .glow-text {
-            text-shadow: 0 0 8px var(--green-accent), 0 0 18px var(--green-primary), 0 0 28px var(--green-muted);
-            color: var(--cyan-highlight);
-            font-weight: bold;
-            letter-spacing: 0.1em;
-        }
-
+        /* ─────────────────────────────── TITLE ── */
         h1.aranya-title {
-            font-size: 7rem;
-            letter-spacing: 0.5em;
-            margin: 0;
-            font-weight: 900;
-            text-transform: uppercase;
-            line-height: 1.2;
-            font-family: 'Courier New', monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-wrap: nowrap;
+            font-size: clamp(3.8rem, 8.5vw, 7.5rem);
+            letter-spacing: 0.55em;
+            font-weight: 900; text-transform: uppercase;
+            display: flex; justify-content: center;
+            align-items: center; flex-wrap: nowrap;
+            /* subtle glitch loop */
+            animation: glitch 9s infinite;
+        }
+        @keyframes glitch {
+            0%,93%,100% { clip-path:none; transform:none; filter:none; }
+            94% { clip-path:inset(18% 0 60% 0); transform:translateX(-4px); filter:hue-rotate(40deg); }
+            95% { clip-path:inset(58% 0 12% 0); transform:translateX(4px);  filter:hue-rotate(-30deg); }
+            96% { clip-path:none; transform:none; filter:none; }
         }
 
         .letter {
             display: inline-block;
             opacity: 0;
             transform: translateY(40px) scale(0.8);
-            margin: 0 10px;
-            font-size: 1em;
-            color: var(--cyan-highlight);
-            text-shadow: 0 0 5px var(--green-accent), 0 0 10px var(--green-primary);
+            margin: 0 9px;
+            color: var(--ch);
+            text-shadow: 0 0 4px var(--ga), 0 0 10px var(--gp);
         }
-
         .letter.active {
-            animation: letterDrop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            animation: letterDrop 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards;
         }
-
         @keyframes letterDrop {
-            0% {
-                opacity: 0;
-                transform: translateY(40px) scale(0.8);
-                text-shadow: 0 0 5px var(--green-accent), 0 0 10px var(--green-primary);
-            }
-            50% {
-                opacity: 1;
-                transform: translateY(-10px) scale(1.1);
-                text-shadow: 0 0 12px var(--cyan-highlight), 0 0 22px var(--green-accent), 0 0 32px var(--green-primary);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-                text-shadow: 0 0 8px var(--green-accent), 0 0 18px var(--green-primary);
-            }
+            0%   { opacity:0; transform:translateY(40px) scale(0.8);
+                   text-shadow:0 0 4px var(--ga), 0 0 10px var(--gp); }
+            42%  { opacity:1; transform:translateY(-13px) scale(1.13);
+                   text-shadow:0 0 12px var(--ch), 0 0 24px var(--ga), 0 0 40px var(--gp); }
+            100% { opacity:1; transform:translateY(0) scale(1);
+                   text-shadow:0 0 6px var(--ga), 0 0 15px var(--gp); }
         }
 
+        /* Animated divider that expands from center */
+        .reveal-divider {
+            height: 1px; width: 0;
+            background: linear-gradient(90deg,
+                transparent, var(--gp) 20%, var(--ch) 50%, var(--gp) 80%, transparent);
+            margin: 1.8rem auto 0;
+            box-shadow: 0 0 8px var(--gp);
+        }
+
+        /* ── Subtitle ── */
         .subtitle {
-            font-size: 0.95rem;
-            letter-spacing: 0.28em;
-            margin-top: 2.5rem;
-            font-weight: 300;
-            color: var(--green-dim);
+            font-size: 0.86rem;
+            letter-spacing: 0.27em;
+            margin-top: 2rem;
+            color: var(--gd);
             text-transform: uppercase;
-            line-height: 2.2;
-            font-family: 'Courier New', monospace;
+            line-height: 2.4;
             text-align: center;
         }
+        .word { display: inline-block; opacity: 0; margin: 0 2px; }
 
-        .word {
-            display: inline-block;
+        .tag-line {
+            font-size: 0.62rem;
+            letter-spacing: 0.38em;
+            color: var(--gm);
+            margin-top: 1.8rem;
+            text-transform: uppercase;
             opacity: 0;
-            margin: 0 3px;
         }
 
+        /* ── Problem ── */
         .problem-text {
-            font-size: 1.75rem;
-            line-height: 2;
-            font-weight: 400;
+            font-size: clamp(1.15rem, 2.4vw, 1.72rem);
+            line-height: 2.1;
             font-style: italic;
-            color: var(--cyan-highlight);
-            max-width: 900px;
-            margin: 0 auto;
-            text-shadow: 0 0 8px var(--green-primary), 0 0 18px var(--green-muted);
-            font-family: 'Courier New', monospace;
+            color: var(--ch);
+            max-width: 860px; margin: 0 auto;
+            text-shadow: 0 0 6px var(--gp), 0 0 18px var(--gm);
+        }
+
+        /* ── CTA section ── */
+        .cta-eyebrow {
+            font-size: 0.6rem; letter-spacing: 0.4em;
+            color: var(--gp); text-transform: uppercase;
+            margin-bottom: 1.1rem; opacity: 0.65;
+        }
+        .cta-heading {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            font-weight: 700; color: var(--ch);
+            letter-spacing: 0.15em;
+            text-shadow: 0 0 10px var(--gp), 0 0 26px var(--gm);
+            margin-bottom: 0.35rem;
+        }
+        .cta-sub {
+            font-size: 0.72rem; letter-spacing: 0.22em;
+            color: var(--gd); text-transform: uppercase;
+            opacity: 0.65; margin-bottom: 0.5rem;
+        }
+        .cta-divider {
+            width: 200px; height: 1px;
+            background: linear-gradient(90deg, transparent, var(--gm), transparent);
+            margin: 22px auto 0;
+        }
+
+        /* ── Button group ── */
+        .btn-group {
+            display: flex; flex-direction: column;
+            align-items: center; gap: 16px;
+            margin-top: 32px;
         }
 
         .cta-button {
             pointer-events: all;
-            padding: 16px 45px;
-            font-size: 1.1rem;
+            padding: 15px 48px;
+            font-size: 0.95rem;
             background: transparent;
-            color: var(--green-accent);
-            border: 2px solid var(--green-primary);
+            border: 1px solid var(--gp);
             cursor: pointer;
-            transition: all 0.4s ease;
+            transition: all 0.35s ease;
             text-decoration: none;
             display: inline-block;
-            margin-top: 40px;
-            letter-spacing: 0.2em;
+            letter-spacing: 0.22em;
             text-transform: uppercase;
             font-weight: 700;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 8px var(--green-primary);
-            box-shadow: inset 0 0 10px rgba(31, 111, 92, 0.15);
+            font-family: 'Share Tech Mono', 'Courier New', monospace;
+            position: relative; overflow: hidden;
+            min-width: 340px;
+            /* shimmer */
+        }
+        .cta-button::before {
+            content: '';
+            position: absolute; left: -100%; top: 0;
+            width: 60%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(127,231,220,0.08), transparent);
+            transition: left 0.55s ease;
+        }
+        .cta-button:hover::before { left: 160%; }
+
+        /* Primary — enter ARANYA */
+        .cta-button.primary {
+            color: var(--ga);
+            border-color: var(--gd);
+            text-shadow: 0 0 8px var(--gp);
+            box-shadow: inset 0 0 14px rgba(31,111,92,0.12);
+        }
+        .cta-button.primary:hover {
+            background: rgba(31,111,92,0.13);
+            color: var(--ch);
+            border-color: var(--ga);
+            box-shadow: 0 0 24px rgba(31,111,92,0.55),
+                        inset 0 0 14px rgba(46,204,113,0.1);
+            transform: translateY(-2px);
         }
 
-        .cta-button:hover {
-            background: rgba(31, 111, 92, 0.15);
-            color: var(--cyan-highlight);
-            border-color: var(--green-accent);
-            box-shadow: 0 0 18px var(--green-primary), inset 0 0 10px rgba(46, 204, 113, 0.15);
-            transform: scale(1.05);
+        /* Surveillance — distinct cyan */
+        .cta-button.surveillance {
+            color: var(--ch);
+            border-color: rgba(127,231,220,0.55);
+            text-shadow: 0 0 8px rgba(127,231,220,0.6);
+            box-shadow: inset 0 0 14px rgba(127,231,220,0.06),
+                        0 0 12px rgba(127,231,220,0.06);
+            letter-spacing: 0.16em;
+        }
+        .cta-button.surveillance:hover {
+            background: rgba(127,231,220,0.07);
+            border-color: var(--ch);
+            box-shadow: 0 0 30px rgba(127,231,220,0.3),
+                        inset 0 0 16px rgba(127,231,220,0.1);
+            color: #fff;
+            text-shadow: 0 0 14px var(--ch), 0 0 28px var(--ga);
+            transform: translateY(-2px);
         }
 
-        #scroll-hint {
-            position: fixed;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 15;
-            font-size: 0.7rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--green-dim);
-            animation: pulse 2.5s infinite;
-            text-shadow: 0 0 8px var(--green-primary);
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 0.35; transform: translateX(-50%) translateY(0); }
-            50% { opacity: 0.85; transform: translateX(-50%) translateY(5px); }
-        }
-
+        /* ── Data marker ── */
         #data-marker {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            width: 60px;
-            height: 60px;
-            transform: translate(-50%, -50%);
-            z-index: 5;
-            opacity: 0;
-            pointer-events: none;
+            position: fixed; top: 50%; left: 50%;
+            width: 54px; height: 54px;
+            transform: translate(-50%,-50%);
+            z-index: 5; opacity: 0; pointer-events: none;
         }
-
         .marker-ring {
-            width: 100%;
-            height: 100%;
-            border: 2px solid var(--green-accent);
+            width: 100%; height: 100%;
+            border: 1.5px solid var(--ga);
             border-radius: 50%;
-            animation: pulse-ring 2s infinite;
-            box-shadow: 0 0 12px var(--green-primary);
+            animation: pring 2.2s infinite;
         }
-
-        @keyframes pulse-ring {
-            0%  { transform: scale(1);   opacity: 1; }
-            100%{ transform: scale(1.6); opacity: 0; }
+        .marker-ring-2 {
+            position: absolute; inset: 9px;
+            border: 1px solid var(--gp);
+            border-radius: 50%;
+            animation: pring 2.2s 0.5s infinite; opacity: 0.5;
         }
-
+        @keyframes pring { 0%{transform:scale(1);opacity:.9} 100%{transform:scale(1.75);opacity:0} }
         .marker-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--cyan-highlight);
-            border-radius: 50%;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px var(--green-accent);
+            width: 6px; height: 6px;
+            background: var(--ch); border-radius: 50%;
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            box-shadow: 0 0 10px var(--ga);
         }
+        .marker-crosshair { position: absolute; inset: 0; }
+        .marker-crosshair::before, .marker-crosshair::after {
+            content: ''; position: absolute; background: var(--gp); opacity: 0.35;
+        }
+        .marker-crosshair::before { width:1px; height:100%; left:50%; transform:translateX(-50%); }
+        .marker-crosshair::after  { height:1px; width:100%; top:50%; transform:translateY(-50%); }
 
-        /* Scene 1 and 2 are spacers — no content */
-        #scene1, #scene2 { height: 200vh; }
-
-        /* Scene 3 needs extra real-estate so text has time to finish */
-        #scene3 { height: 300vh; }
-        #scene4 { height: 200vh; }
-        #scene5 { height: 200vh; }
-
-        /* trailing spacer */
-        .spacer { height: 50vh; }
-
-        /* CTA heading */
-        .cta-heading {
-            font-size: 2.1rem;
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: var(--cyan-highlight);
-            text-shadow: 0 0 8px var(--green-primary);
-            font-family: 'Courier New', monospace;
-            letter-spacing: 0.12em;
+        /* ── Scroll hint ── */
+        #scroll-hint {
+            position: fixed; bottom: 34px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 15; font-size: 0.62rem;
+            letter-spacing: 0.28em; text-transform: uppercase;
+            color: var(--gd); text-shadow: 0 0 8px var(--gp);
+            animation: hpulse 2.8s infinite;
+        }
+        @keyframes hpulse {
+            0%,100%{opacity:.3; transform:translateX(-50%) translateY(0)}
+            50%{opacity:.8; transform:translateX(-50%) translateY(6px)}
         }
     </style>
 </head>
 <body>
 
-    <div id="canvas-container"></div>
-    <div id="vignette"></div>
-    <div id="scanlines"></div>
-    <div id="data-marker">
-        <div class="marker-ring"></div>
-        <div class="marker-dot"></div>
+<div id="canvas-container"></div>
+<div id="vignette"></div>
+<div id="hud-grid"></div>
+<div id="scanlines"></div>
+
+<!-- HUD bracket corners -->
+<div class="hud-corner tl"><svg viewBox="0 0 52 52" fill="none"><path d="M2 28 L2 2 L28 2" stroke="#1f6f5c" stroke-width="1.5"/><circle cx="2" cy="2" r="2" fill="#2ecc71" opacity="0.5"/></svg></div>
+<div class="hud-corner tr"><svg viewBox="0 0 52 52" fill="none"><path d="M2 28 L2 2 L28 2" stroke="#1f6f5c" stroke-width="1.5"/><circle cx="2" cy="2" r="2" fill="#2ecc71" opacity="0.5"/></svg></div>
+<div class="hud-corner bl"><svg viewBox="0 0 52 52" fill="none"><path d="M2 28 L2 2 L28 2" stroke="#1f6f5c" stroke-width="1.5"/><circle cx="2" cy="2" r="2" fill="#2ecc71" opacity="0.5"/></svg></div>
+<div class="hud-corner br"><svg viewBox="0 0 52 52" fill="none"><path d="M2 28 L2 2 L28 2" stroke="#1f6f5c" stroke-width="1.5"/><circle cx="2" cy="2" r="2" fill="#2ecc71" opacity="0.5"/></svg></div>
+
+<!-- HUD top status bar -->
+<div id="hud-top">
+    <div id="hud-live"></div>
+    <span>ARANYA&nbsp;OS&nbsp;v2.1</span>
+    <span class="sep">|</span>
+    <span>TARGET:&nbsp;<span class="hi" id="hud-target">ACQUIRING</span></span>
+    <span class="sep">|</span>
+    <span>SCAN:&nbsp;<span class="hi">ACTIVE</span></span>
+</div>
+
+<!-- Bottom-right coords -->
+<div id="hud-coords">
+    LAT &nbsp;27.4° N<br>
+    LON &nbsp;76.2° E<br>
+    ELEV 875 m<br>
+    RES &nbsp;3 m/px
+</div>
+
+<!-- Left telemetry -->
+<div id="hud-telem">
+    NDVI <span class="val">0.31</span><br>
+    TEMP <span class="val">34.2°C</span><br>
+    AQI &nbsp;<span class="val">87</span><br>
+    COVER<span class="val"> 41%</span>
+</div>
+
+<!-- Data marker -->
+<div id="data-marker">
+    <div class="marker-ring"></div>
+    <div class="marker-ring-2"></div>
+    <div class="marker-crosshair"></div>
+    <div class="marker-dot"></div>
+</div>
+
+<div id="scroll-hint">▼ &nbsp; scroll to engage &nbsp; ▼</div>
+
+<!-- ═══════════════════════ SCROLL CONTENT ═══════════════════════ -->
+<div id="scroll-content">
+
+    <div id="scene1"></div>
+    <div id="scene2"></div>
+
+    <!-- Scene 3: Title reveal -->
+    <div id="scene3">
+        <div class="sticky-inner">
+            <div class="content-box" id="reveal-box">
+                <h1 class="aranya-title">
+                    <span class="letter">A</span>
+                    <span class="letter">R</span>
+                    <span class="letter">A</span>
+                    <span class="letter">N</span>
+                    <span class="letter">Y</span>
+                    <span class="letter">A</span>
+                </h1>
+
+                <div class="reveal-divider" id="reveal-divider"></div>
+
+                <div class="subtitle">
+                    <span class="word">Autonomous</span>
+                    <span class="word" style="color:var(--gm)">·</span>
+                    <span class="word">Real-time</span>
+                    <span class="word" style="color:var(--gm)">·</span>
+                    <span class="word">Analytics</span>
+                    <span class="word" style="color:var(--gm)">·</span>
+                    <span class="word">for</span>
+                    <span class="word" style="color:var(--gm)">·</span>
+                    <span class="word">Natural</span>
+                    <span class="word" style="color:var(--gm)">·</span>
+                    <span class="word">Yield</span>
+                    <span class="word" style="color:var(--gm)">·</span>
+                    <span class="word">Area</span>
+                    <span class="word" style="color:var(--gm)">·</span>
+                    <span class="word">Protection</span>
+                </div>
+
+                <div class="tag-line" id="tag-line">
+                    // environmental intelligence &nbsp;·&nbsp; protecting the Aravali //
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="scroll-hint">▼ Scroll to explore ▼</div>
 
-    <div id="scroll-content">
-        <!-- Scene 1: The Hook (spacer) -->
-        <div id="scene1"></div>
-
-        <!-- Scene 2: The Zoom (spacer) -->
-        <div id="scene2"></div>
-
-        <!-- Scene 3: The Reveal — sticky so content stays centred during scroll -->
-        <div id="scene3">
-            <div class="sticky-inner">
-                <div class="content-box" id="reveal-box">
-                    <h1 class="aranya-title glow-text">
-                        <span class="letter">A</span><span class="letter">R</span><span class="letter">A</span><span class="letter">N</span><span class="letter">Y</span><span class="letter">A</span>
-                    </h1>
-                    <div class="subtitle">
-                        <span class="word">Autonomous</span>
-                        <span class="word">·</span>
-                        <span class="word">Real-time</span>
-                        <span class="word">·</span>
-                        <span class="word">Analytics</span>
-                        <span class="word">·</span>
-                        <span class="word">for</span>
-                        <span class="word">·</span>
-                        <span class="word">Natural</span>
-                        <span class="word">·</span>
-                        <span class="word">Yield</span>
-                        <span class="word">·</span>
-                        <span class="word">Area</span>
-                        <span class="word">·</span>
-                        <span class="word">Protection</span>
-                    </div>
-                </div>
+    <!-- Scene 4: Problem statement -->
+    <div id="scene4">
+        <div class="sticky-inner">
+            <div class="content-box" id="problem-box">
+                <p class="problem-text">
+                    "The Aravali hills — 2 billion years old — are disappearing.<br>
+                    We built a system to catch who's doing it."
+                </p>
             </div>
         </div>
-
-        <!-- Scene 4: The Problem Statement -->
-        <div id="scene4">
-            <div class="sticky-inner">
-                <div class="content-box" id="problem-box">
-                    <p class="problem-text">
-                        "The Aravali hills — 2 billion years old — are disappearing.<br>
-                        We built a system to catch who's doing it."
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Scene 5: The CTA -->
-        <div id="scene5">
-            <div class="sticky-inner">
-                <div class="content-box" id="cta-box">
-                    <h2 class="cta-heading">PROTECT THE ARAVALI</h2>
-                    <a href="http://localhost:8501" class="cta-button">→ ENTER ARANYA ←</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="spacer"></div>
     </div>
 
-    <script>
-        // ==================== THREE.JS SETUP ====================
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 10000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setClearColor(0x000000, 1);
-        container.appendChild(renderer.domElement);
+    <!-- Scene 5: CTA -->
+    <div id="scene5">
+        <div class="sticky-inner">
+            <div class="content-box" id="cta-box">
+                <p class="cta-eyebrow">// mission critical — choose your access //</p>
+                <h2 class="cta-heading">PROTECT THE ARAVALI</h2>
+                <p class="cta-sub">Select deployment mode</p>
+                <div class="cta-divider"></div>
 
-        // ==================== TEXTURES ====================
-        const textureLoader = new THREE.TextureLoader();
-        const earthTexture  = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
-        const earthNormal   = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
-        const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg');
-        const cloudsTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
+                <div class="btn-group">
+                    <a href="http://localhost:8501" class="cta-button primary">
+                        → &nbsp; Enter ARANYA &nbsp; ←
+                    </a>
+                    <a href="https://thenandinee.github.io/A.R.A.N.Y.A/"
+                       target="_blank" rel="noopener noreferrer"
+                       class="cta-button surveillance">
+                        ⬡ &nbsp; Launch Surveillance System &nbsp; ⬡
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        // ==================== EARTH GROUP ====================
-        const earthGroup = new THREE.Group();
-        scene.add(earthGroup);
+    <div class="spacer"></div>
+</div>
 
-        const earthGeo = new THREE.SphereGeometry(1, 128, 128);
-        const earthMat = new THREE.MeshPhongMaterial({
-            map: earthTexture,
-            normalMap: earthNormal,
-            specularMap: earthSpecular,
-            specular: new THREE.Color(0x222222),
-            shininess: 20,
-            emissive: new THREE.Color(0x111111)
-        });
-        const earthMesh = new THREE.Mesh(earthGeo, earthMat);
-        earthGroup.add(earthMesh);
+<script>
+// ═══════════════════════ THREE.JS ═══════════════════════
+const container = document.getElementById('canvas-container');
+const scene     = new THREE.Scene();
+const camera    = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 10000);
+const renderer  = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setClearColor(0x000000, 1);
+container.appendChild(renderer.domElement);
 
-        const cloudGeo = new THREE.SphereGeometry(1.018, 128, 128);
-        const cloudMat = new THREE.MeshPhongMaterial({
-            map: cloudsTexture,
-            transparent: true,
-            opacity: 0.55,
-            emissive: new THREE.Color(0x080808)
-        });
-        const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-        earthGroup.add(cloudMesh);
+const TL   = new THREE.TextureLoader();
+const BASE = 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/';
+const earthTex  = TL.load(BASE + 'earth_atmos_2048.jpg');
+const earthNorm = TL.load(BASE + 'earth_normal_2048.jpg');
+const earthSpec = TL.load(BASE + 'earth_specular_2048.jpg');
+const cloudsTex = TL.load(BASE + 'earth_clouds_1024.png');
 
-        // Atmosphere layers — new palette (forest green / deep teal)
-        const atmosGeo1 = new THREE.SphereGeometry(1.025, 128, 128);
-        const atmosMat1 = new THREE.MeshBasicMaterial({
-            color: 0x1f6f5c,
-            transparent: true,
-            opacity: 0.07,
-            side: THREE.BackSide
-        });
-        earthGroup.add(new THREE.Mesh(atmosGeo1, atmosMat1));
+const earthGroup = new THREE.Group();
+scene.add(earthGroup);
 
-        const atmosGeo2 = new THREE.SphereGeometry(1.06, 128, 128);
-        const atmosMat2 = new THREE.MeshBasicMaterial({
-            color: 0x2ecc71,
-            transparent: true,
-            opacity: 0.09,
-            side: THREE.BackSide
-        });
-        earthGroup.add(new THREE.Mesh(atmosGeo2, atmosMat2));
+const earthMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 128, 128),
+    new THREE.MeshPhongMaterial({
+        map: earthTex, normalMap: earthNorm, specularMap: earthSpec,
+        specular: new THREE.Color(0x111111), shininess: 22,
+        emissive: new THREE.Color(0x080e0b)
+    })
+);
+earthGroup.add(earthMesh);
 
-        const atmosGeo3 = new THREE.SphereGeometry(1.12, 128, 128);
-        const atmosMat3 = new THREE.MeshBasicMaterial({
-            color: 0x0e4d3a,
-            transparent: true,
-            opacity: 0.05,
-            side: THREE.BackSide
-        });
-        earthGroup.add(new THREE.Mesh(atmosGeo3, atmosMat3));
+const cloudMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(1.018, 128, 128),
+    new THREE.MeshPhongMaterial({ map: cloudsTex, transparent: true, opacity: 0.48 })
+);
+earthGroup.add(cloudMesh);
 
-        // ==================== STARFIELD ====================
-        function createNebula(count, size, range, color) {
-            const geo = new THREE.BufferGeometry();
-            const coords = new Float32Array(count * 3);
-            for (let i = 0; i < count * 3; i++) coords[i] = (Math.random() - 0.5) * range;
-            geo.setAttribute('position', new THREE.BufferAttribute(coords, 3));
-            const mat = new THREE.PointsMaterial({ color, size, transparent: true, opacity: 0.55, sizeAttenuation: true });
-            return new THREE.Points(geo, mat);
-        }
+// Atmosphere halos
+[
+    { r: 1.026, c: 0x1f6f5c, o: 0.09 },
+    { r: 1.065, c: 0x2ecc71, o: 0.07 },
+    { r: 1.14,  c: 0x0e4d3a, o: 0.04 }
+].forEach(({ r, c, o }) =>
+    earthGroup.add(new THREE.Mesh(
+        new THREE.SphereGeometry(r, 64, 64),
+        new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, side: THREE.BackSide })
+    ))
+);
 
-        const starField1 = createNebula(3000, 0.05, 150, 0xffffff);
-        const starField2 = createNebula(1200, 0.07, 200, 0x7fe7dc);  // cyan-highlight
-        const starField3 = createNebula(700,  0.10, 250, 0x2ecc71);  // accent
-        scene.add(starField1, starField2, starField3);
+// Starfields
+function nebula(count, size, range, color) {
+    const p = new Float32Array(count * 3);
+    for (let i = 0; i < count * 3; i++) p[i] = (Math.random() - 0.5) * range;
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+    return new THREE.Points(g, new THREE.PointsMaterial({
+        color, size, transparent: true, opacity: 0.55, sizeAttenuation: true
+    }));
+}
+const sf1 = nebula(3200, 0.05, 150, 0xffffff);
+const sf2 = nebula(1200, 0.07, 200, 0x7fe7dc);
+const sf3 = nebula(600,  0.10, 260, 0x2ecc71);
+scene.add(sf1, sf2, sf3);
 
-        // ==================== LIGHTING ====================
-        scene.add(new THREE.AmbientLight(0x303030, 2.5));
+// Lighting
+scene.add(new THREE.AmbientLight(0x252525, 3));
+const sun = new THREE.DirectionalLight(0xfff8ee, 3.2);
+sun.position.set(8, 4, 8);
+scene.add(sun);
+const rim = new THREE.DirectionalLight(0x1f6f5c, 1.0);
+rim.position.set(-5, -2, -8);
+scene.add(rim);
 
-        const sunLight = new THREE.DirectionalLight(0xffffff, 2.8);
-        sunLight.position.set(8, 4, 8);
-        scene.add(sunLight);
+camera.position.z = 5;
+earthGroup.rotation.y = -Math.PI / 2.5;
+earthGroup.rotation.x = 0.3;
 
-        const rimLight = new THREE.DirectionalLight(0x1f6f5c, 0.7);
-        rimLight.position.set(-5, -2, -8);
-        scene.add(rimLight);
+(function loop() {
+    requestAnimationFrame(loop);
+    earthGroup.rotation.y += 0.0001;
+    cloudMesh.rotation.y  += 0.00015;
+    sf1.rotation.y += 0.00005;
+    sf2.rotation.y += 0.00003;
+    sf3.rotation.y += 0.00002;
+    renderer.render(scene, camera);
+})();
 
-        // ==================== CAMERA ====================
-        camera.position.z = 5;
-        earthGroup.rotation.y = -Math.PI / 2.5;
-        earthGroup.rotation.x = 0.3;
+// ═══════════════════════ GSAP ═══════════════════════
+gsap.registerPlugin(ScrollTrigger);
 
-        // ==================== RENDER LOOP ====================
-        function animate() {
-            requestAnimationFrame(animate);
-            earthGroup.rotation.y += 0.0001;
-            cloudMesh.rotation.y  += 0.00015;
-            starField1.rotation.y += 0.00005;
-            starField2.rotation.y += 0.00003;
-            starField3.rotation.y += 0.00002;
-            renderer.render(scene, camera);
-        }
-        animate();
+/*  Heights: s1=200 s2=200 s3=300 s4=200 s5=220 spacer=50 → total≈1170vh
+    Fractions: s1_end≈0.171 | s2_end≈0.342 | s3_end≈0.598 | s4_end≈0.769 | s5_end≈0.957 */
 
-        // ==================== GSAP SCROLL ====================
-        gsap.registerPlugin(ScrollTrigger);
+const tl = gsap.timeline({
+    scrollTrigger: {
+        trigger: "#scroll-content",
+        start: "top top",
+        end: "bottom bottom",
+        scrub: 3
+    }
+});
 
-        /*
-         * Total scroll height (approximate vh units):
-         *   scene1  200vh
-         *   scene2  200vh
-         *   scene3  300vh  ← extra room for title+subtitle reveal
-         *   scene4  200vh
-         *   scene5  200vh
-         *   spacer   50vh
-         * = ~1150vh total
-         *
-         * scrub: 3 keeps transitions smooth and deliberate.
-         * Timeline positions (0–1) are mapped to that full scroll distance.
-         *
-         * Scene boundaries (fraction of total):
-         *   scene1 ends  ≈ 0.174  (200/1150)
-         *   scene2 ends  ≈ 0.348  (400/1150)
-         *   scene3 ends  ≈ 0.609  (700/1150)
-         *   scene4 ends  ≈ 0.783  (900/1150)
-         *   scene5 ends  ≈ 0.957  (1100/1150)
-         */
+// ── Zoom to Aravali
+tl
+  .to(camera.position,     { z: 1.2, ease: "power2.inOut", duration: 0.18 }, 0)
+  .to(earthGroup.rotation, { y: Math.PI * 0.42, x: 0.50, ease: "power2.inOut", duration: 0.18 }, 0)
+  .to(camera.position,     { z: 0.52, ease: "power2.inOut", duration: 0.18 }, 0.14)
+  .to("#data-marker",      { opacity: 1, duration: 0.06 }, 0.26)
+  // ── Reveal
+  .to("#reveal-box",       { opacity: 1, duration: 0.04 }, 0.34);
 
-        const masterTL = gsap.timeline({
-            scrollTrigger: {
-                trigger: "#scroll-content",
-                start: "top top",
-                end: "bottom bottom",
-                scrub: 3,
-                markers: false
-            }
-        });
+document.querySelectorAll('.letter').forEach((l, i) =>
+    tl.call(() => l.classList.add('active'), [], 0.36 + i * 0.022)
+);
 
-        // ── SCENE 1 → 2: Zoom in toward Aravali ───────────────────────────
-        // Runs from 0 → 0.35 of the scroll
+tl.to("#reveal-divider",  { width: "58%", ease: "power2.out", duration: 0.12 }, 0.47);
 
-        masterTL.to(camera.position, {
-            z: 1.2,
-            ease: "power2.inOut",
-            duration: 0.18
-        }, 0);
+document.querySelectorAll('.word').forEach((w, i) =>
+    tl.to(w, { opacity: 1, duration: 0.012 }, 0.50 + i * 0.009)
+);
 
-        masterTL.to(earthGroup.rotation, {
-            y: Math.PI * 0.42,
-            x: 0.5,
-            ease: "power2.inOut",
-            duration: 0.18
-        }, 0);
+tl.to("#tag-line", { opacity: 0.55, duration: 0.08 }, 0.62);
 
-        masterTL.to(camera.position, {
-            z: 0.52,
-            ease: "power2.inOut",
-            duration: 0.18
-        }, 0.14);
+// ── To problem
+tl
+  .to("#reveal-box",   { opacity: 0, y: -80, filter: "blur(14px)", duration: 0.06 }, 0.64)
+  .to("#data-marker",  { opacity: 0, duration: 0.04 }, 0.64)
+  .to(camera.position, { z: 0.72, ease: "power2.inOut", duration: 0.10 }, 0.64)
+  .to("#problem-box",  { opacity: 1, duration: 0.07 }, 0.70);
 
-        // Data marker appears as we lock onto the region
-        masterTL.to("#data-marker", {
-            opacity: 1,
-            duration: 0.06
-        }, 0.26);
+// ── To CTA
+tl
+  .to("#problem-box",  { opacity: 0, y: -70, filter: "blur(10px)", duration: 0.06 }, 0.81)
+  .to("#cta-box",      { opacity: 1, duration: 0.09 }, 0.87)
+  .to(camera.position, { z: 0.42, ease: "power2.inOut", duration: 0.10 }, 0.87);
 
-        // ── SCENE 3: Reveal box fades in, then letters fire ───────────────
-        // Starts at ~0.34 (just as scene3 enters) — well before scene3 midpoint
+// ── HUD target text update
+ScrollTrigger.create({
+    trigger: "#scene3", start: "top center",
+    onEnter: () => {
+        const el = document.getElementById('hud-target');
+        if (el) { el.textContent = 'ARAVALI RANGE'; }
+    }
+});
+ScrollTrigger.create({
+    trigger: "#scene5", start: "top center",
+    onEnter: () => {
+        const el = document.getElementById('hud-target');
+        if (el) { el.textContent = 'LOCKED ●'; }
+    }
+});
 
-        masterTL.to("#reveal-box", {
-            opacity: 1,
-            duration: 0.04
-        }, 0.34);
+// ── Enable CTA click when visible
+ScrollTrigger.create({
+    trigger: "#scene5", start: "top center",
+    onEnter: () => {
+        document.getElementById('cta-box').style.pointerEvents = 'all';
+    }
+});
 
-        const letters = document.querySelectorAll('.letter');
-        letters.forEach((letter, i) => {
-            const pos = 0.36 + i * 0.022;   // stagger each letter
-            masterTL.call(() => { letter.classList.add('active'); }, [], pos);
-        });
+// ── Hide scroll hint
+ScrollTrigger.create({
+    trigger: "#scroll-content", start: "top+=60 top",
+    onEnter: () => gsap.to("#scroll-hint", { opacity: 0, duration: 0.6 })
+});
 
-        // Subtitle words after letters finish (last letter fires at ~0.36+5×0.022=0.47)
-        const words = document.querySelectorAll('.word');
-        words.forEach((word, i) => {
-            masterTL.to(word, {
-                opacity: 1,
-                duration: 0.012
-            }, 0.49 + i * 0.009);
-        });
-        // Last word lands at 0.49 + 12×0.009 = 0.598 → well inside scene3
-
-        // ── SCENE 3 → 4: Reveal fades out, problem appears ───────────────
-        masterTL.to("#reveal-box", {
-            opacity: 0,
-            y: -80,
-            filter: "blur(12px)",
-            duration: 0.06
-        }, 0.63);
-
-        masterTL.to("#data-marker", {
-            opacity: 0,
-            duration: 0.04
-        }, 0.63);
-
-        masterTL.to("#problem-box", {
-            opacity: 1,
-            duration: 0.07
-        }, 0.69);
-
-        // Camera eases back slightly for problem statement
-        masterTL.to(camera.position, {
-            z: 0.72,
-            ease: "power2.inOut",
-            duration: 0.10
-        }, 0.63);
-
-        // ── SCENE 4 → 5: Problem fades, CTA rises ────────────────────────
-        masterTL.to("#problem-box", {
-            opacity: 0,
-            y: -70,
-            filter: "blur(10px)",
-            duration: 0.06
-        }, 0.80);
-
-        masterTL.to("#cta-box", {
-            opacity: 1,
-            duration: 0.08
-        }, 0.86);
-
-        // Final zoom for drama
-        masterTL.to(camera.position, {
-            z: 0.42,
-            ease: "power2.inOut",
-            duration: 0.10
-        }, 0.86);
-
-        // ── Hide scroll hint once user starts scrolling ───────────────────
-        ScrollTrigger.create({
-            trigger: "#scroll-content",
-            start: "top+=50 top",
-            onEnter: () => gsap.to("#scroll-hint", { opacity: 0, duration: 0.5 })
-        });
-
-        // ==================== RESIZE ====================
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            ScrollTrigger.refresh();
-        });
-    </script>
+// ── Resize
+window.addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    ScrollTrigger.refresh();
+});
+</script>
 </body>
 </html>
