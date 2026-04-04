@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARANYA — Autonomous Real-time Analytics for Natural Yield & Area Protection</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --space: #000000;
+    --deep: #020408;
+    --atmo: #0a1628;
+    --earth-glow: #1a3a5c;
+    --aravali: #1b3a1a;
+    --pale-blue: #a8c8e8;
+    --star-white: rgba(255,255,255,0.9);
+    --text-main: #e8e4dc;
+    --text-dim: #6a7a8a;
+    --accent: #4a9eff;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--space);
+    color: var(--text-main);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    overflow-x: hidden;
+  }
+
+  /* ── Sticky canvas ── */
+  #sticky-wrap {
+    position: relative;
+    height: 600vh;
+  }
+
+  #scene {
+    position: sticky;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Stars ── */
+  #stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+
+  /* ── Earth sphere ── */
+  #earth-wrap {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.22);
+    transform-origin: center center;
+    will-change: transform;
+    transition: transform 0s;
+  }
+
+  #earth {
+    width: 520px;
+    height: 520px;
+    border-radius: 50%;
+    position: relative;
+    background:
+      radial-gradient(ellipse at 30% 25%, #2d6a8a 0%, transparent 40%),
+      radial-gradient(ellipse at 70% 60%, #1a4a6a 0%, transparent 45%),
+      radial-gradient(ellipse at 50% 50%, #0d2a45 30%, #061520 100%);
+    box-shadow:
+      inset -60px -40px 120px rgba(0,0,20,0.9),
+      inset 20px 15px 80px rgba(30,80,140,0.3),
+      0 0 80px rgba(30,100,200,0.15),
+      0 0 200px rgba(10,50,120,0.08);
+    overflow: hidden;
+  }
+
+  /* continent shapes */
+  #earth::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      radial-gradient(ellipse 35% 28% at 52% 42%, rgba(34,85,34,0.85) 0%, transparent 100%),
+      radial-gradient(ellipse 18% 22% at 38% 55%, rgba(28,72,28,0.7) 0%, transparent 100%),
+      radial-gradient(ellipse 12% 10% at 65% 35%, rgba(30,78,30,0.6) 0%, transparent 100%),
+      radial-gradient(ellipse 22% 15% at 58% 48%, rgba(36,90,36,0.75) 0%, transparent 100%),
+      radial-gradient(ellipse 8% 12% at 44% 38%, rgba(25,65,25,0.8) 0%, transparent 100%);
+  }
+
+  /* atmosphere glow */
+  #earth::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at 35% 30%,
+      rgba(80,160,255,0.12) 0%,
+      rgba(40,100,200,0.06) 40%,
+      transparent 70%);
+    box-shadow:
+      0 0 40px rgba(60,140,255,0.08),
+      0 0 100px rgba(40,100,200,0.05);
+  }
+
+  #atmo-ring {
+    position: absolute;
+    inset: -18px;
+    border-radius: 50%;
+    border: 2px solid rgba(80,160,255,0.06);
+    box-shadow:
+      0 0 30px rgba(60,140,255,0.1),
+      0 0 80px rgba(40,100,200,0.06);
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  /* cloud layer */
+  #clouds {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    opacity: 0.45;
+  }
+
+  #clouds::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 20% 8% at 45% 30%, rgba(255,255,255,0.7) 0%, transparent 100%),
+      radial-gradient(ellipse 15% 6% at 60% 45%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(ellipse 12% 5% at 35% 58%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(ellipse 18% 7% at 70% 32%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(ellipse 10% 4% at 48% 65%, rgba(255,255,255,0.55) 0%, transparent 100%);
+    animation: cloudDrift 60s linear infinite;
+  }
+
+  @keyframes cloudDrift {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Aravali overlay — shows when zoomed in */
+  #aravali-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    opacity: 0;
+    background:
+      radial-gradient(ellipse 8% 25% at 52% 42%, rgba(20,55,20,0.95) 0%, transparent 60%),
+      radial-gradient(ellipse 4% 18% at 50% 40%, rgba(15,45,15,0.9) 0%, transparent 50%),
+      radial-gradient(ellipse 6% 20% at 54% 44%, rgba(25,65,25,0.8) 0%, transparent 55%);
+    transition: opacity 0.8s;
+  }
+
+  #scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(74,158,255,0.4), transparent);
+    top: 50%;
+    opacity: 0;
+    animation: scan 3s ease-in-out infinite;
+  }
+
+  @keyframes scan {
+    0%, 100% { opacity: 0; top: 20%; }
+    50% { opacity: 1; top: 80%; }
+  }
+
+  /* ── Text layers ── */
+  #text-layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  #letters-wrap {
+    display: flex;
+    gap: 0.08em;
+    opacity: 0;
+    margin-bottom: 1.2rem;
+  }
+
+  .letter {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(4rem, 10vw, 9rem);
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    transform: translateY(60px);
+    opacity: 0;
+    text-shadow: 0 0 40px rgba(74,158,255,0.5);
+  }
+
+  #acronym-wrap {
+    display: flex;
+    gap: 0.6em;
+    flex-wrap: wrap;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s, transform 0.8s;
+    padding: 0 2rem;
+  }
+
+  .acronym-word {
+    font-family: 'Space Mono', monospace;
+    font-size: clamp(0.55rem, 1.1vw, 0.8rem);
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    color: var(--pale-blue);
+    text-transform: uppercase;
+    opacity: 0;
+  }
+
+  .acronym-word.bold-part {
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  #problem-wrap {
+    position: absolute;
+    bottom: 12vh;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    opacity: 0;
+    width: min(680px, 90vw);
+    padding: 0 2rem;
+  }
+
+  #problem-line {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-style: italic;
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    font-weight: 300;
+    color: var(--text-main);
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+
+  #cta-wrap {
+    position: absolute;
+    bottom: 4vh;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    text-align: center;
+  }
+
+  #enter-btn {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: none;
+    border: 1px solid rgba(74,158,255,0.3);
+    padding: 0.8rem 2.4rem;
+    cursor: pointer;
+    pointer-events: all;
+    transition: all 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  #enter-btn:hover {
+    background: rgba(74,158,255,0.08);
+    border-color: rgba(74,158,255,0.6);
+    color: #fff;
+  }
+
+  /* ── Scroll hint ── */
+  #scroll-hint {
+    position: fixed;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 1;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  #scroll-hint span {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  #scroll-arrow {
+    width: 1px;
+    height: 32px;
+    background: linear-gradient(to bottom, rgba(106,122,138,0.8), transparent);
+    animation: scrollPulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { transform: scaleY(1); opacity: 0.6; }
+    50% { transform: scaleY(0.5); opacity: 0.2; }
+  }
+
+  /* ── Coordinate HUD ── */
+  #hud {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    opacity: 0;
+    transition: opacity 0.5s;
+    z-index: 100;
+    text-align: right;
+    line-height: 1.8;
+  }
+
+  /* ── Satellite grid overlay ── */
+  #grid-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1s;
+  }
+
+  #grid-overlay svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Vignette ── */
+  #vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center,
+      transparent 30%,
+      rgba(0,0,0,0.5) 75%,
+      rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  /* ── After scroll section ── */
+  #after-scroll {
+    background: var(--space);
+    height: 0;
+  }
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div id="hud-lat">28.6139° N</div>
+  <div id="hud-lon">77.2090° E</div>
+  <div id="hud-alt">ALT <span id="alt-val">35,786</span> KM</div>
+</div>
+
+<div id="scroll-hint">
+  <span>scroll</span>
+  <div id="scroll-arrow"></div>
+</div>
+
+<div id="sticky-wrap">
+  <div id="scene">
+
+    <canvas id="stars"></canvas>
+
+    <div id="earth-wrap">
+      <div id="earth">
+        <div id="clouds"></div>
+        <div id="aravali-overlay"></div>
+        <div id="scan-line"></div>
+        <div id="atmo-ring"></div>
+      </div>
+    </div>
+
+    <div id="grid-overlay">
+      <svg viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <pattern id="grid" width="80" height="80" patternUnits="userSpaceOnUse">
+            <path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(74,158,255,0.06)" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="1000" height="1000" fill="url(#grid)"/>
+        <circle cx="500" cy="500" r="200" fill="none" stroke="rgba(74,158,255,0.08)" stroke-width="0.5"/>
+        <circle cx="500" cy="500" r="350" fill="none" stroke="rgba(74,158,255,0.04)" stroke-width="0.5"/>
+        <line x1="500" y1="0" x2="500" y2="1000" stroke="rgba(74,158,255,0.05)" stroke-width="0.5"/>
+        <line x1="0" y1="500" x2="1000" y2="500" stroke="rgba(74,158,255,0.05)" stroke-width="0.5"/>
+      </svg>
+    </div>
+
+    <div id="vignette"></div>
+
+    <div id="text-layer">
+      <div id="letters-wrap">
+        <span class="letter" data-l="A">A</span>
+        <span class="letter" data-l="R">R</span>
+        <span class="letter" data-l="A">A</span>
+        <span class="letter" data-l="N">N</span>
+        <span class="letter" data-l="Y">Y</span>
+        <span class="letter" data-l="A">A</span>
+      </div>
+
+      <div id="acronym-wrap">
+        <span class="acronym-word bold-part">Autonomous</span>
+        <span class="acronym-word">·</span>
+        <span class="acronym-word bold-part">Real-time</span>
+        <span class="acronym-word">·</span>
+        <span class="acronym-word bold-part">Analytics</span>
+        <span class="acronym-word">for</span>
+        <span class="acronym-word bold-part">Natural</span>
+        <span class="acronym-word bold-part">Yield</span>
+        <span class="acronym-word">·</span>
+        <span class="acronym-word bold-part">Area</span>
+        <span class="acronym-word bold-part">Protection</span>
+      </div>
+
+      <div id="problem-wrap">
+        <p id="problem-line">The Aravali hills — 2 billion years old — are disappearing.<br>We built a system to catch who's doing it.</p>
+      </div>
+
+      <div id="cta-wrap">
+        <a id="enter-btn" href="http://localhost:8501" target="_blank">Enter ARANYA →</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="after-scroll"></div>
+
+<script>
+// ── Stars ──────────────────────────────────────────────────
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  generateStars();
+  drawStars();
+}
+
+function generateStars() {
+  stars = [];
+  const count = Math.floor((canvas.width * canvas.height) / 2800);
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.2 + 0.1,
+      a: Math.random() * 0.7 + 0.2,
+      twinkleSpeed: Math.random() * 0.02 + 0.005,
+      twinklePhase: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+let frame = 0;
+function drawStars() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  frame += 0.5;
+  stars.forEach(s => {
+    const twinkle = Math.sin(frame * s.twinkleSpeed + s.twinklePhase) * 0.3;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${Math.max(0, s.a + twinkle)})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+// ── Scroll driver ──────────────────────────────────────────
+const earthWrap = document.getElementById('earth-wrap');
+const aravaliOverlay = document.getElementById('aravali-overlay');
+const atmoRing = document.getElementById('atmo-ring');
+const scanLine = document.getElementById('scan-line');
+const gridOverlay = document.getElementById('grid-overlay');
+const lettersWrap = document.getElementById('letters-wrap');
+const letters = document.querySelectorAll('.letter');
+const acronymWrap = document.getElementById('acronym-wrap');
+const acronymWords = document.querySelectorAll('.acronym-word');
+const problemWrap = document.getElementById('problem-wrap');
+const ctaWrap = document.getElementById('cta-wrap');
+const scrollHint = document.getElementById('scroll-hint');
+const hud = document.getElementById('hud');
+const altVal = document.getElementById('alt-val');
+const hudLat = document.getElementById('hud-lat');
+const hudLon = document.getElementById('hud-lon');
+
+// Scroll phases (0–1 within each phase)
+// Phase 0: 0–15%   — Earth breathes, stars, no zoom
+// Phase 1: 15–45%  — Zoom in through atmosphere to India/Aravali
+// Phase 2: 45–60%  — Letters drop in
+// Phase 3: 60–72%  — Acronym fades in
+// Phase 4: 72–88%  — Problem statement
+// Phase 5: 88–100% — CTA appears
+
+function lerp(a, b, t) { return a + (b - a) * Math.max(0, Math.min(1, t)); }
+function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInOut(t) { return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2,3)/2; }
+function clamp01(t) { return Math.max(0, Math.min(1, t)); }
+function phase(progress, start, end) { return clamp01((progress - start) / (end - start)); }
+
+let letterDropped = [false,false,false,false,false,false];
+let acronymShown = false;
+
+function onScroll() {
+  const scrollY = window.scrollY;
+  const stickyH = document.getElementById('sticky-wrap').offsetHeight - window.innerHeight;
+  const prog = clamp01(scrollY / stickyH);
+
+  // Hide scroll hint after first scroll
+  scrollHint.style.opacity = prog > 0.03 ? '0' : '1';
+
+  // ── Phase 0: idle (prog 0–0.12) ──
+  // Earth just sits there breathing
+
+  // ── Phase 1: zoom (prog 0.12–0.50) ──
+  const zoomProg = phase(prog, 0.12, 0.50);
+  const zoomEased = easeInOut(zoomProg);
+
+  // Scale: 0.22 → 28 (punching through atmosphere)
+  const scale = lerp(0.22, 28, zoomEased);
+  earthWrap.style.transform = `translate(-50%, -50%) scale(${scale})`;
+
+  // Atmosphere glow ring
+  atmoRing.style.opacity = zoomProg > 0.1 && zoomProg < 0.7
+    ? String(Math.sin(zoomProg * Math.PI) * 0.8)
+    : '0';
+
+  // Stars fade as we zoom
+  canvas.style.opacity = String(lerp(1, 0, phase(prog, 0.30, 0.48)));
+
+  // Aravali ridge appears
+  aravaliOverlay.style.opacity = String(phase(prog, 0.42, 0.52));
+
+  // Grid overlay
+  gridOverlay.style.opacity = String(phase(prog, 0.44, 0.52));
+
+  // Scan line
+  scanLine.style.opacity = zoomProg > 0.8 ? '1' : '0';
+
+  // HUD
+  hud.style.opacity = String(phase(prog, 0.40, 0.50));
+
+  // Altitude readout
+  const alt = Math.round(lerp(35786, 0.8, zoomEased));
+  altVal.textContent = alt > 1000
+    ? alt.toLocaleString()
+    : alt < 10 ? alt.toFixed(1) : String(alt);
+
+  // Lat/lon drift toward Aravali
+  const lat = lerp(20.5, 28.62, zoomEased);
+  const lon = lerp(78.9, 76.25, zoomEased);
+  hudLat.textContent = lat.toFixed(4) + '° N';
+  hudLon.textContent = lon.toFixed(4) + '° E';
+
+  // ── Phase 2: letters (prog 0.50–0.64) ──
+  const letterProg = phase(prog, 0.50, 0.64);
+  lettersWrap.style.opacity = letterProg > 0 ? '1' : '0';
+
+  letters.forEach((letter, i) => {
+    const letterStart = i * 0.13;
+    const lp = phase(letterProg, letterStart, letterStart + 0.4);
+    const eased = easeOut(lp);
+    letter.style.opacity = String(eased);
+    letter.style.transform = `translateY(${lerp(60, 0, eased)}px)`;
+
+    // pulse effect on land
+    if (!letterDropped[i] && lp > 0.9) {
+      letterDropped[i] = true;
+      letter.style.textShadow = '0 0 60px rgba(74,158,255,0.9), 0 0 120px rgba(74,158,255,0.4)';
+      setTimeout(() => {
+        letter.style.textShadow = '0 0 40px rgba(74,158,255,0.5)';
+      }, 200);
+    }
+  });
+
+  // ── Phase 3: acronym (prog 0.64–0.75) ──
+  const acProg = phase(prog, 0.64, 0.75);
+  acronymWrap.style.opacity = String(acProg);
+  acronymWrap.style.transform = `translateY(${lerp(20, 0, easeOut(acProg))}px)`;
+
+  acronymWords.forEach((word, i) => {
+    const wp = phase(acProg, i * 0.06, i * 0.06 + 0.3);
+    word.style.opacity = String(wp);
+  });
+
+  // ── Phase 4: problem statement (prog 0.75–0.90) ──
+  const probProg = phase(prog, 0.75, 0.90);
+  problemWrap.style.opacity = String(easeOut(probProg));
+
+  // ── Phase 5: CTA (prog 0.90–1.00) ──
+  const ctaProg = phase(prog, 0.90, 1.0);
+  ctaWrap.style.opacity = String(easeOut(ctaProg));
+  if (ctaProg > 0) ctaWrap.querySelector('#enter-btn').style.pointerEvents = 'all';
+}
+
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll(); // init
+</script>
+</body>
+</html>
