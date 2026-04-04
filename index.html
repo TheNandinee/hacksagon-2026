@@ -1,1310 +1,1292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARANYA | Autonomous Real-time Analytics for Natural Yield & Area Protection</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A.R.A.N.Y.A | National Environmental Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; background: #000; color: white; margin: 0; }
+        .glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
+        .glass-dark { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .scan-line { background: linear-gradient(to bottom, transparent, rgba(34,197,94,0.5), transparent); height: 100px; width: 100%; position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
+        @keyframes scan { from { top: -100px; } to { top: 100%; } }
+        .grid-bg { background-image: radial-gradient(rgba(34,197,94,0.15) 1px, transparent 1px); background-size: 30px 30px; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0a0a0a; }
+        ::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 10px; }
+        @keyframes notif-slide { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
+        .notif-enter { animation: notif-slide 0.3s ease; }
+        select option { background: #1a1a1a; color: white; }
+        .mono { font-family: 'Space Mono', monospace; }
 
-<!-- Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+        /* ── SIMULATION STYLES ── */
+        @keyframes pulse-ring { 0%{transform:scale(1);opacity:0.8} 100%{transform:scale(2.5);opacity:0} }
+        @keyframes data-flow { 0%{stroke-dashoffset:200} 100%{stroke-dashoffset:0} }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        @keyframes matrix-rain { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+        @keyframes count-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slide-in-right { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes slide-in-left { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes fade-in-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes progress-fill { from{width:0%} to{width:var(--target-width)} }
+        @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+        @keyframes orbit { from{transform:rotate(0deg) translateX(60px) rotate(0deg)} to{transform:rotate(360deg) translateX(60px) rotate(-360deg)} }
+        @keyframes waveform { 0%,100%{height:4px} 50%{height:28px} }
+        @keyframes float-up { 0%{opacity:0;transform:translateY(0)} 50%{opacity:1} 100%{opacity:0;transform:translateY(-60px)} }
+        @keyframes highlight-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} 50%{box-shadow:0 0 0 6px rgba(34,197,94,0.15)} }
 
-<!-- Three.js + GSAP for cinematic intro -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+        .sim-stage { animation: fade-in-up 0.5s ease forwards; }
+        .flow-arrow { animation: data-flow 1.5s linear infinite; stroke-dasharray: 8 4; }
+        .ping-ring::after { content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid #22c55e; animation:pulse-ring 2s ease-out infinite; }
+        .terminal-cursor::after { content:'|'; animation:blink 1s step-end infinite; color:#22c55e; }
+        .shimmer-bar { background: linear-gradient(90deg, rgba(34,197,94,0.1) 25%, rgba(34,197,94,0.3) 50%, rgba(34,197,94,0.1) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
+        .waveform-bar { width:3px; border-radius:2px; background:#22c55e; animation:waveform 0.8s ease-in-out infinite; transform-origin:bottom; }
+        .step-active { animation: highlight-pulse 2s ease infinite; }
+        .float-particle { animation: float-up 3s ease-in-out infinite; }
 
-<!-- React + Babel for app -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://unpkg.com/lucide@latest"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-
-<style>
-/* ═══════════════════════════════════════════
-   GLOBAL RESET
-═══════════════════════════════════════════ */
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-
-/* ═══════════════════════════════════════════
-   CINEMATIC OVERLAY
-═══════════════════════════════════════════ */
-#cinematic-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: #000;
-  overflow-y: auto;
-  overflow-x: hidden;
-  transition: opacity 1.2s ease, visibility 1.2s ease;
-}
-#cinematic-overlay.fade-out {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
-/* Three.js canvas — fixed behind scroll content */
-#three-canvas {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-}
-
-/* Vignette + scanlines */
-#vignette {
-  position: fixed; inset: 0; z-index: 2; pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.6) 100%);
-}
-#scanlines {
-  position: fixed; inset: 0; z-index: 3; pointer-events: none;
-  background: repeating-linear-gradient(0deg, rgba(0,255,136,0.025), rgba(0,255,136,0.025) 1px, transparent 1px, transparent 2px);
-  animation: scanShift 8s linear infinite;
-}
-@keyframes scanShift { 0%{transform:translateY(0)} 100%{transform:translateY(10px)} }
-
-/* HUD top-right */
-#hud {
-  position: fixed; top: 1.5rem; right: 1.5rem; z-index: 20;
-  font-family: 'Space Mono', monospace; font-size: 0.6rem;
-  color: rgba(0,255,136,0.5); letter-spacing: 0.1em;
-  opacity: 0; transition: opacity 0.8s; line-height: 2;
-  text-align: right;
-}
-
-/* Data marker ping */
-#data-marker {
-  position: fixed; top: 50%; left: 50%;
-  width: 60px; height: 60px;
-  transform: translate(-50%, -50%);
-  z-index: 5; opacity: 0; pointer-events: none;
-}
-.marker-ring {
-  width: 100%; height: 100%;
-  border: 2px solid #00ff88; border-radius: 50%;
-  animation: pulseRing 2s infinite; box-shadow: 0 0 15px #00ff88;
-}
-@keyframes pulseRing { 0%{transform:scale(1);opacity:1} 100%{transform:scale(1.5);opacity:0} }
-.marker-dot {
-  width: 8px; height: 8px; background: #00ff88; border-radius: 50%;
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  box-shadow: 0 0 10px #00ff88;
-}
-
-/* Scroll content sits above canvas */
-#scroll-content {
-  position: relative; z-index: 10; width: 100%;
-}
-.scroll-section {
-  width: 100%; height: 100vh;
-  display: flex; flex-direction: column;
-  justify-content: center; align-items: center;
-}
-
-/* ARANYA title */
-.aranya-title {
-  font-size: clamp(4rem, 10vw, 7rem);
-  letter-spacing: 0.45em; font-weight: 900;
-  font-family: 'Space Mono', monospace;
-  color: #00ff88; line-height: 1.2;
-  text-shadow: 0 0 10px #00ff88, 0 0 20px #00ff88;
-}
-.letter {
-  display: inline-block; opacity: 0;
-  transform: translateY(40px) scale(0.8); margin: 0 8px;
-}
-.letter.active { animation: letterDrop 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-@keyframes letterDrop {
-  0%  { opacity:0; transform:translateY(40px) scale(0.8); text-shadow:0 0 5px #00ff88; }
-  50% { opacity:1; transform:translateY(-8px) scale(1.1); text-shadow:0 0 30px #00ff88, 0 0 60px #00ff88; }
-  100%{ opacity:1; transform:translateY(0) scale(1); text-shadow:0 0 10px #00ff88, 0 0 20px #00ff88; }
-}
-
-.subtitle {
-  font-size: clamp(0.6rem, 1.1vw, 0.85rem);
-  letter-spacing: 0.25em; margin-top: 2rem;
-  font-weight: 400; color: rgba(0,255,136,0.7);
-  text-transform: uppercase; line-height: 2;
-  font-family: 'Space Mono', monospace;
-}
-.word { display: inline-block; opacity: 0; margin: 0 3px; }
-
-.problem-box { text-align: center; max-width: 900px; padding: 40px; opacity: 0; }
-.problem-text {
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: clamp(1.3rem, 2.8vw, 2rem);
-  font-style: italic; font-weight: 300; color: #fff;
-  line-height: 1.8; letter-spacing: 0.02em;
-}
-
-.cta-box { text-align: center; opacity: 0; }
-.cta-title {
-  font-family: 'Space Mono', monospace;
-  font-size: clamp(1rem, 2vw, 1.4rem);
-  color: #00ff88; letter-spacing: 0.2em;
-  text-transform: uppercase; margin-bottom: 2rem;
-  text-shadow: 0 0 10px #00ff88;
-}
-.cta-button {
-  padding: 18px 52px; font-size: 1rem;
-  background: transparent; color: #00ff88;
-  border: 2px solid #00ff88; cursor: pointer;
-  transition: all 0.3s ease; text-decoration: none;
-  display: inline-block; letter-spacing: 0.2em;
-  text-transform: uppercase; font-weight: 700;
-  font-family: 'Space Mono', monospace;
-  text-shadow: 0 0 10px #00ff88;
-  box-shadow: inset 0 0 10px rgba(0,255,136,0.1);
-}
-.cta-button:hover {
-  background: rgba(0,255,136,0.1);
-  box-shadow: 0 0 30px #00ff88, inset 0 0 15px rgba(0,255,136,0.15);
-  transform: scale(1.03);
-}
-
-#scroll-hint {
-  position: fixed; bottom: 40px; left: 50%;
-  transform: translateX(-50%); z-index: 15;
-  font-size: 0.65rem; letter-spacing: 0.2em;
-  text-transform: uppercase; color: #00ff88;
-  animation: scrollPulse 2.5s infinite;
-  font-family: 'Space Mono', monospace;
-  text-shadow: 0 0 8px #00ff88;
-}
-@keyframes scrollPulse {
-  0%,100%{opacity:0.3;transform:translateX(-50%) translateY(0)}
-  50%{opacity:1;transform:translateX(-50%) translateY(5px)}
-}
-
-/* ═══════════════════════════════════════════
-   REACT APP (hidden until intro completes)
-═══════════════════════════════════════════ */
-#app-root {
-  position: fixed; inset: 0; z-index: 1;
-  opacity: 0; transition: opacity 1s ease 0.3s;
-  overflow: hidden;
-}
-#app-root.visible {
-  opacity: 1;
-  position: relative;
-  overflow: auto;
-}
-
-/* ═══════════════════════════════════════════
-   REACT APP STYLES (from file 2)
-═══════════════════════════════════════════ */
-body { font-family: 'Inter', sans-serif; overflow-x: hidden; background: #000; color: white; }
-.glass { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); }
-.glass-dark { background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
-.scan-line { background: linear-gradient(to bottom, transparent, rgba(34,197,94,0.5), transparent); height: 100px; width: 100%; position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
-@keyframes scan { from{top:-100px} to{top:100%} }
-.grid-bg { background-image: radial-gradient(rgba(34,197,94,0.15) 1px, transparent 1px); background-size: 30px 30px; }
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #0a0a0a; }
-::-webkit-scrollbar-thumb { background: #22c55e; border-radius: 10px; }
-@keyframes notif-slide { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
-.notif-enter { animation: notif-slide 0.3s ease; }
-select option { background: #1a1a1a; color: white; }
-.mono { font-family: 'Space Mono', monospace; }
-@keyframes pulse-ring { 0%{transform:scale(1);opacity:0.8} 100%{transform:scale(2.5);opacity:0} }
-@keyframes data-flow { 0%{stroke-dashoffset:200} 100%{stroke-dashoffset:0} }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-@keyframes count-up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-@keyframes slide-in-right { from{opacity:0;transform:translateX(30px)} to{opacity:1;transform:translateX(0)} }
-@keyframes fade-in-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
-@keyframes waveform { 0%,100%{height:4px} 50%{height:28px} }
-@keyframes float-up { 0%{opacity:0;transform:translateY(0)} 50%{opacity:1} 100%{opacity:0;transform:translateY(-60px)} }
-@keyframes highlight-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,0)} 50%{box-shadow:0 0 0 6px rgba(34,197,94,0.15)} }
-.sim-stage { animation: fade-in-up 0.5s ease forwards; }
-.flow-arrow { animation: data-flow 1.5s linear infinite; stroke-dasharray: 8 4; }
-.ping-ring::after { content:''; position:absolute; inset:-4px; border-radius:50%; border:2px solid #22c55e; animation:pulse-ring 2s ease-out infinite; }
-.terminal-cursor::after { content:'|'; animation:blink 1s step-end infinite; color:#22c55e; }
-.shimmer-bar { background: linear-gradient(90deg, rgba(34,197,94,0.1) 25%, rgba(34,197,94,0.3) 50%, rgba(34,197,94,0.1) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
-</style>
+        /* Cinematic Intro Styles */
+        .intro-container {
+            height: 600vh; /* Multi-scene scroll length */
+            background: #000;
+            position: relative;
+        }
+        .scene-fixed {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .earth-container {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .earth-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.8) contrast(1.1);
+        }
+        .stars-bg {
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(white, rgba(255,255,255,0.2) 2px, transparent 40px);
+            background-size: 100px 100px;
+            opacity: 0.3;
+        }
+        .text-reveal {
+            font-family: 'Space Mono', monospace;
+            text-align: center;
+            z-index: 10;
+        }
+        .letter {
+            display: inline-block;
+            margin: 0 0.5rem;
+            font-size: 4rem;
+            font-weight: 800;
+            letter-spacing: 0.5rem;
+        }
+        .pulse-dot {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #22c55e;
+        }
+    </style>
 </head>
 <body>
-
-<!-- ═══════════════════════════════════════════
-     REACT APP (mounts immediately, hidden)
-═══════════════════════════════════════════ -->
-<div id="app-root"></div>
-
-<!-- ═══════════════════════════════════════════
-     CINEMATIC OVERLAY
-═══════════════════════════════════════════ -->
-<div id="cinematic-overlay">
-  <div id="three-canvas"></div>
-  <div id="vignette"></div>
-  <div id="scanlines"></div>
-  <div id="hud">
-    <div id="hud-lat">28.6139° N</div>
-    <div id="hud-lon">77.2090° E</div>
-    <div id="hud-alt">ALT <span id="alt-val">35,786</span> KM</div>
-  </div>
-  <div id="data-marker">
-    <div class="marker-ring"></div>
-    <div class="marker-dot"></div>
-  </div>
-  <div id="scroll-hint">▼ scroll to explore ▼</div>
-
-  <div id="scroll-content">
-    <!-- Scene 1 & 2: Hook + Zoom (empty — Three.js handles visuals) -->
-    <div class="scroll-section" id="scene1"></div>
-    <div class="scroll-section" id="scene2"></div>
-
-    <!-- Scene 3: Letter reveal -->
-    <div class="scroll-section" id="scene3">
-      <div id="reveal-box" style="text-align:center;opacity:0;padding:40px">
-        <h1 class="aranya-title">
-          <span class="letter">A</span><span class="letter">R</span><span class="letter">A</span><span class="letter">N</span><span class="letter">Y</span><span class="letter">A</span>
-        </h1>
-        <div class="subtitle">
-          <span class="word">Autonomous</span> <span class="word">·</span>
-          <span class="word">Real-time</span> <span class="word">·</span>
-          <span class="word">Analytics</span> <span class="word">·</span>
-          <span class="word">for</span> <span class="word">·</span>
-          <span class="word">Natural</span> <span class="word">·</span>
-          <span class="word">Yield</span> <span class="word">·</span>
-          <span class="word">Area</span> <span class="word">·</span>
-          <span class="word">Protection</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Scene 4: Problem statement -->
-    <div class="scroll-section" id="scene4">
-      <div class="problem-box" id="problem-box">
-        <p class="problem-text">
-          "The Aravali hills — 2 billion years old — are disappearing.<br>
-          We built a system to catch who's doing it."
-        </p>
-      </div>
-    </div>
-
-    <!-- Scene 5: CTA — enters the React app -->
-    <div class="scroll-section" id="scene5">
-      <div class="cta-box" id="cta-box">
-        <p class="cta-title">Protect the Aravali</p>
-        <button class="cta-button" id="enter-btn" onclick="enterApp()">→ Enter ARANYA ←</button>
-      </div>
-    </div>
-
-    <div style="height:100vh"></div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════
-     THREE.JS — CINEMATIC EARTH
-═══════════════════════════════════════════ -->
-<script>
-(function() {
-  const container = document.getElementById('three-canvas');
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 10000);
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(0x000000, 1);
-  container.appendChild(renderer.domElement);
-
-  const tl = new THREE.TextureLoader();
-  const earthTex  = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
-  const earthNorm = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
-  const earthSpec = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg');
-  const cloudTex  = tl.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
-
-  const earthGroup = new THREE.Group();
-  scene.add(earthGroup);
-
-  const earthMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 128, 128),
-    new THREE.MeshPhongMaterial({ map:earthTex, normalMap:earthNorm, specularMap:earthSpec, specular:new THREE.Color(0x333333), shininess:25, emissive:new THREE.Color(0x111111) })
-  );
-  earthGroup.add(earthMesh);
-
-  const cloudMesh = new THREE.Mesh(
-    new THREE.SphereGeometry(1.018, 128, 128),
-    new THREE.MeshPhongMaterial({ map:cloudTex, transparent:true, opacity:0.55 })
-  );
-  earthGroup.add(cloudMesh);
-
-  // Atmosphere layers
-  [[1.03, 0x00ff88, 0.07], [1.065, 0x4488ff, 0.10], [1.12, 0x2244aa, 0.05]].forEach(([r, col, op]) => {
-    earthGroup.add(new THREE.Mesh(
-      new THREE.SphereGeometry(r, 64, 64),
-      new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:op, side:THREE.BackSide })
-    ));
-  });
-
-  // Stars
-  function makeStars(count, size, range, col) {
-    const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(count * 3);
-    for (let i = 0; i < count * 3; i++) pos[i] = (Math.random() - 0.5) * range;
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    return new THREE.Points(geo, new THREE.PointsMaterial({ color:col, size, transparent:true, opacity:0.7, sizeAttenuation:true }));
-  }
-  const s1 = makeStars(3000, 0.05, 150, 0xffffff);
-  const s2 = makeStars(1200, 0.08, 200, 0x88ffcc);
-  const s3 = makeStars(600,  0.12, 250, 0x4488ff);
-  scene.add(s1); scene.add(s2); scene.add(s3);
-
-  // Lights
-  scene.add(new THREE.AmbientLight(0x404040, 2.5));
-  const sun = new THREE.DirectionalLight(0xffffff, 3);
-  sun.position.set(8, 4, 8);
-  scene.add(sun);
-  const rim = new THREE.DirectionalLight(0x00ff88, 0.6);
-  rim.position.set(-5, -2, -8);
-  scene.add(rim);
-
-  // Initial camera & earth orientation (tilted so India faces us when zoomed)
-  camera.position.z = 5;
-  earthGroup.rotation.y = -Math.PI / 2.5;
-  earthGroup.rotation.x = 0.28;
-
-  // Animate
-  function animate() {
-    requestAnimationFrame(animate);
-    earthGroup.rotation.y += 0.00008;
-    cloudMesh.rotation.y  += 0.00012;
-    s1.rotation.y += 0.00004;
-    s2.rotation.y += 0.00003;
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  // GSAP scroll-driven story
-  gsap.registerPlugin(ScrollTrigger);
-
-  const master = gsap.timeline({
-    scrollTrigger: {
-      trigger: '#scroll-content',
-      start: 'top top',
-      end: 'bottom bottom',
-      scrub: 2.5
-    }
-  });
-
-  // Scene 1→2: zoom toward India/Aravali region
-  master.to(camera.position, { z: 1.15, ease: 'power2.inOut', duration: 1 }, 0);
-  master.to(earthGroup.rotation, { y: Math.PI * 0.44, x: 0.48, ease: 'power2.inOut', duration: 1 }, 0);
-  master.to(camera.position, { z: 0.48, ease: 'power2.inOut', duration: 0.8 }, 0.55);
-  master.to('#data-marker', { opacity: 1, duration: 0.4 }, 0.75);
-  master.to('#hud', { opacity: 1, duration: 0.5 }, 0.6);
-
-  // Scene 3: letters
-  master.to('#reveal-box', { opacity: 1, duration: 0.3 }, 0.65);
-  document.querySelectorAll('.letter').forEach((l, i) => {
-    master.call(() => l.classList.add('active'), [], 0.8 + i * 0.14);
-  });
-  document.querySelectorAll('.word').forEach((w, i) => {
-    master.to(w, { opacity: 1, duration: 0.1 }, 1.75 + i * 0.04);
-  });
-
-  // Scene 4: problem
-  master.to('#reveal-box', { opacity: 0, y: -80, filter: 'blur(12px)', duration: 0.4 }, 2.1);
-  master.to('#data-marker', { opacity: 0, duration: 0.3 }, 2.1);
-  master.to('#problem-box', { opacity: 1, duration: 0.6 }, 2.4);
-  master.to(camera.position, { z: 0.72, ease: 'power2.inOut', duration: 0.7 }, 2.1);
-
-  // Scene 5: CTA
-  master.to('#problem-box', { opacity: 0, y: -60, filter: 'blur(10px)', duration: 0.4 }, 3.05);
-  master.to('#cta-box', { opacity: 1, duration: 0.6 }, 3.4);
-  master.to(camera.position, { z: 0.38, ease: 'power2.inOut', duration: 0.7 }, 3.4);
-  master.to('#scroll-hint', { opacity: 0, duration: 0.3 }, 0.15);
-
-  // HUD counter effect (cosmetic)
-  let hudTick = setInterval(() => {
-    const el = document.getElementById('alt-val');
-    if (!el) { clearInterval(hudTick); return; }
-    const cur = parseInt(el.textContent.replace(/,/g,'')) || 35786;
-    const next = Math.max(1, Math.round(cur * 0.992));
-    el.textContent = next.toLocaleString();
-    if (next <= 2) clearInterval(hudTick);
-  }, 120);
-
-  window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    ScrollTrigger.refresh();
-  });
-})();
-
-// Called when Enter ARANYA is clicked
-function enterApp() {
-  const overlay = document.getElementById('cinematic-overlay');
-  const appRoot = document.getElementById('app-root');
-  overlay.classList.add('fade-out');
-  setTimeout(() => {
-    overlay.style.display = 'none';
-    appRoot.classList.add('visible');
-    document.body.style.overflow = 'auto';
-  }, 1300);
-}
-</script>
-
-<!-- ═══════════════════════════════════════════
-     REACT APP
-═══════════════════════════════════════════ -->
+<div id="root"></div>
 <script type="text/babel">
 const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+const { motion, AnimatePresence, useScroll, useTransform, useSpring } = FramerMotion;
 
 const LucideIcon = ({ name, className="w-5 h-5", size, color, strokeWidth }) => {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (window.lucide && ref.current) {
-      ref.current.innerHTML = '';
-      const el = document.createElement('i');
-      el.setAttribute('data-lucide', name);
-      ref.current.appendChild(el);
-      window.lucide.createIcons({ elements:[el], attrs:{ class:className, ...(size&&{width:size,height:size}), ...(color&&{stroke:color}), ...(strokeWidth&&{'stroke-width':strokeWidth}) }, nameAttr:'data-lucide' });
-    }
-  }, [name, className, size, color, strokeWidth]);
-  return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
+    const ref = useRef(null);
+    useEffect(() => {
+        if (window.lucide && ref.current) {
+            ref.current.innerHTML = '';
+            const el = document.createElement('i');
+            el.setAttribute('data-lucide', name);
+            ref.current.appendChild(el);
+            window.lucide.createIcons({ elements:[el], attrs:{ class:className, ...(size&&{width:size,height:size}), ...(color&&{stroke:color}), ...(strokeWidth&&{'stroke-width':strokeWidth}) }, nameAttr:'data-lucide' });
+        }
+    }, [name, className, size, color, strokeWidth]);
+    return <span ref={ref} className="inline-flex items-center justify-center shrink-0"></span>;
 };
 
-// ── DATA ─────────────────────────────────────────────────────────
+// ── CINEMATIC INTRO ───────────────────────────────────────────────────────────
+const CinematicIntro = ({ onComplete }) => {
+    const containerRef = useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: containerRef,
+        offset: ["start start", "end end"]
+    });
+
+    // Scene 1 & 2: Earth Zoom
+    // Earth scale from small dot to filling screen
+    const earthScale = useTransform(scrollYProgress, [0, 0.1, 0.4, 0.6], [0.05, 0.1, 1, 40]);
+    const earthOpacity = useTransform(scrollYProgress, [0, 0.05, 0.6, 0.7], [0, 1, 1, 0]);
+    const earthRotate = useTransform(scrollYProgress, [0, 1], [0, 45]);
+    
+    // Subcontinent / Ridge Appearances (Simulation via scale/opacity)
+    const indiaOpacity = useTransform(scrollYProgress, [0.4, 0.5], [0, 1]);
+    const ridgeOpacity = useTransform(scrollYProgress, [0.55, 0.6], [0, 1]);
+
+    // Scene 3: A.R.A.N.Y.A Reveal
+    const titleOpacity = useTransform(scrollYProgress, [0.65, 0.7, 0.85, 0.9], [0, 1, 1, 0]);
+    const letterY = useTransform(scrollYProgress, [0.65, 0.7], [50, 0]);
+    
+    // Scene 4: Problem Statement
+    const problemOpacity = useTransform(scrollYProgress, [0.8, 0.85, 0.95, 0.98], [0, 1, 1, 0]);
+    
+    // Scene 5: Button
+    const buttonOpacity = useTransform(scrollYProgress, [0.95, 0.98], [0, 1]);
+
+    const letters = "ARANYA".split("");
+    const expansion = "Autonomous · Real-time · Analytics · for · Natural · Yield · Area · Protection";
+
+    return (
+        <div ref={containerRef} className="intro-container">
+            {/* Scene 1 & 2: The Space Zoom */}
+            <div className="scene-fixed">
+                <div className="stars-bg" />
+                <motion.div 
+                    style={{ scale: earthScale, opacity: earthOpacity, rotate: earthRotate }}
+                    className="earth-container"
+                >
+                    {/* High-res Earth from Space */}
+                    <img 
+                        src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2000&auto=format&fit=crop" 
+                        className="earth-img rounded-full shadow-[0_0_100px_rgba(59,130,246,0.5)]"
+                        alt="Earth"
+                    />
+                    
+                    {/* Overlay for India Zoom */}
+                    <motion.div 
+                        style={{ opacity: indiaOpacity }}
+                        className="absolute inset-0 flex items-center justify-center"
+                    >
+                        <img 
+                            src="https://images.unsplash.com/photo-1524492412937-b28074a5d7da?q=80&w=2000&auto=format&fit=crop" 
+                            className="w-full h-full object-cover rounded-full"
+                            alt="India"
+                        />
+                    </motion.div>
+
+                    {/* Overlay for Aravali Ridge */}
+                    <motion.div 
+                        style={{ opacity: ridgeOpacity }}
+                        className="absolute inset-0 flex items-center justify-center"
+                    >
+                        <img 
+                            src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2000&auto=format&fit=crop" 
+                            className="w-full h-full object-cover rounded-full"
+                            alt="Aravali"
+                        />
+                    </motion.div>
+                </motion.div>
+            </div>
+
+            {/* Scene 3: The Reveal */}
+            <motion.div style={{ opacity: titleOpacity }} className="scene-fixed flex-col">
+                <div className="flex mb-8">
+                    {letters.map((l, i) => (
+                        <motion.span 
+                            key={i}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            className="letter text-green-500"
+                        >
+                            {l}
+                        </motion.span>
+                    ))}
+                </div>
+                <motion.p 
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 1 }}
+                    className="text-slate-400 font-mono text-sm max-w-2xl px-6"
+                >
+                    {expansion}
+                </motion.p>
+            </motion.div>
+
+            {/* Scene 4: Problem Statement */}
+            <motion.div style={{ opacity: problemOpacity }} className="scene-fixed px-8">
+                <div className="max-w-3xl text-center">
+                    <h2 className="text-3xl md:text-5xl font-bold leading-tight">
+                        The Aravali hills — <span className="text-red-500">2 billion years old</span> — are disappearing.
+                    </h2>
+                    <p className="text-xl text-slate-400 mt-6 font-light">
+                        We built a system to catch who's doing it.
+                    </p>
+                </div>
+            </motion.div>
+
+            {/* Scene 5: Final Transition */}
+            <motion.div style={{ opacity: buttonOpacity, pointerEvents: 'auto' }} className="scene-fixed">
+                <button 
+                    onClick={onComplete}
+                    className="group relative px-12 py-5 bg-green-500 text-black font-black text-xl rounded-2xl hover:bg-white transition-all transform hover:scale-110 shadow-[0_0_50px_rgba(34,197,94,0.4)]"
+                >
+                    Enter ARANYA →
+                    <div className="absolute -inset-1 bg-green-500 rounded-2xl blur opacity-30 group-hover:opacity-60 transition"></div>
+                </button>
+            </motion.div>
+        </div>
+    );
+};
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
 let _counter = 3;
 const genId = () => `REP-2024-${String(++_counter).padStart(3,'0')}`;
 const INITIAL_REPORTS = [
-  { id:"REP-2024-001", topic:"Illegal Granite Mining", coords:"28.618° N, 76.234° E", lat:28.62, lng:76.23, status:"Under Investigation", risk:88, loss:"12.4%", date:"2024-05-12", citizen:"Ramesh K.", description:"Heavy machinery observed moving toward the protected forest zone at 2 AM daily. Ground water contaminated.", zone:"Aravalli Zone C — Charkhi Dadri", violationType:"Mining" },
-  { id:"REP-2024-002", topic:"Forest Encroachment", coords:"28.575° N, 76.198° E", lat:28.58, lng:76.20, status:"Under Review", risk:64, loss:"4.2%", date:"2024-05-14", citizen:"Anita S.", description:"Fencing appearing around common grazing lands near the reserve border. Lease exceeds permitted area.", zone:"Aravalli Zone B — Pichopa Kalan", violationType:"Encroachment" },
+    { id:"REP-2024-001", topic:"Illegal Granite Mining", coords:"27.4285° N, 76.1245° E", lat:27.43, lng:76.12, status:"Under Investigation", risk:88, loss:"12.4%", date:"2024-05-12", citizen:"Ramesh K.", description:"Heavy machinery observed moving toward the protected forest zone at 2 AM daily.", zone:"Aravalli Zone C", violationType:"Mining" },
+    { id:"REP-2024-002", topic:"Forest Encroachment", coords:"28.1121° N, 77.0210° E", lat:28.11, lng:77.02, status:"Under Review", risk:64, loss:"4.2%", date:"2024-05-14", citizen:"Anita S.", description:"Fencing appearing around common grazing lands near the reserve border.", zone:"Delhi Ridge Zone B", violationType:"Encroachment" },
 ];
 const VIOLATION_TYPES = ["Mining","Encroachment","Logging","Poaching","Industrial Waste","Water Contamination"];
-const ZONES = ["Aravalli Zone A — Bhiwani","Aravalli Zone B — Pichopa Kalan","Aravalli Zone C — Charkhi Dadri","Aravalli Zone D — Mahendergarh","Rajawas Protected Forest","Dadam Mining Belt","Delhi Ridge Zone"];
+const ZONES = ["Aravalli Zone A","Aravalli Zone B","Aravalli Zone C","Delhi Ridge Zone A","Delhi Ridge Zone B","Haryana Forest Reserve","Yamuna Floodplain"];
 const STATUSES = ["Pending Review","Under Review","Under Investigation","Resolved","Closed"];
 
-// ── NOTIFICATIONS ─────────────────────────────────────────────────
+// ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
 const NotifCtx = createContext(null);
 const useNotify = () => useContext(NotifCtx);
 const NotificationProvider = ({ children }) => {
-  const [notifs, setNotifs] = useState([]);
-  const notify = useCallback((msg, type='info') => {
-    const id = Date.now();
-    setNotifs(p => [...p, { id, msg, type }]);
-    setTimeout(() => setNotifs(p => p.filter(n => n.id !== id)), 4000);
-  }, []);
-  return (
-    <NotifCtx.Provider value={notify}>
-      {children}
-      <div style={{position:'fixed',top:76,right:20,zIndex:9999,display:'flex',flexDirection:'column',gap:8,width:320}}>
-        {notifs.map(n => (
-          <div key={n.id} className="notif-enter glass-dark rounded-xl px-4 py-3 flex items-center gap-3 text-sm"
-            style={{borderLeft:`3px solid ${n.type==='success'?'#22c55e':n.type==='error'?'#ef4444':'#3b82f6'}`}}>
-            <span style={{color:n.type==='success'?'#22c55e':n.type==='error'?'#ef4444':'#3b82f6',fontWeight:700}}>{n.type==='success'?'✓':n.type==='error'?'✕':'ℹ'}</span>
-            <span className="text-slate-200 flex-1">{n.msg}</span>
-          </div>
-        ))}
-      </div>
-    </NotifCtx.Provider>
-  );
+    const [notifs, setNotifs] = useState([]);
+    const notify = useCallback((msg, type='info') => {
+        const id = Date.now();
+        setNotifs(p => [...p, { id, msg, type }]);
+        setTimeout(() => setNotifs(p => p.filter(n => n.id !== id)), 4000);
+    }, []);
+    return (
+        <NotifCtx.Provider value={notify}>
+            {children}
+            <div style={{ position:'fixed', top:76, right:20, zIndex:9999, display:'flex', flexDirection:'column', gap:8, width:320 }}>
+                {notifs.map(n => (
+                    <div key={n.id} className="notif-enter glass-dark rounded-xl px-4 py-3 flex items-center gap-3 text-sm"
+                        style={{ borderLeft:`3px solid ${n.type==='success'?'#22c55e':n.type==='error'?'#ef4444':'#3b82f6'}` }}>
+                        <span style={{ color:n.type==='success'?'#22c55e':n.type==='error'?'#ef4444':'#3b82f6', fontWeight:700 }}>{n.type==='success'?'✓':n.type==='error'?'✕':'ℹ'}</span>
+                        <span className="text-slate-200 flex-1">{n.msg}</span>
+                    </div>
+                ))}
+            </div>
+        </NotifCtx.Provider>
+    );
 };
 
-// ── NAV ───────────────────────────────────────────────────────────
-const Navigation = ({ setView, userRole, onLogout }) => (
-  <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center glass-dark">
-    <div className="flex items-center gap-2 cursor-pointer" onClick={() => { onLogout && onLogout(); setView('landing'); }}>
-      <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
-        <LucideIcon name="shield" className="text-black w-5 h-5" />
-      </div>
-      <span className="text-white font-bold tracking-tighter text-xl" style={{fontFamily:'Space Mono,monospace'}}>A.R.A.N.Y.A</span>
-    </div>
-    <div className="flex gap-4 items-center">
-      {userRole && (
-        <span className="text-green-500 text-xs font-mono bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
-          {userRole==='gov'?'🛡 GOV OFFICIAL':'👤 CITIZEN'}
-        </span>
-      )}
-      {!userRole ? (
-        <button onClick={() => setView('login')} className="bg-green-500 hover:bg-green-400 transition-colors text-black px-4 py-1.5 rounded-full font-semibold text-sm">Access Terminal</button>
-      ) : (
-        <button onClick={() => { onLogout(); setView('landing'); }} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-1.5 rounded-full font-semibold text-sm transition-colors">Log Out</button>
-      )}
-    </div>
-  </nav>
+// ── NAVIGATION ────────────────────────────────────────────────────────────────
+const Navigation = ({ view, setView, userRole, onLogout }) => (
+    <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center glass-dark">
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => { onLogout && onLogout(); setView('intro'); }}>
+            <div className="w-8 h-8 bg-green-500 rounded flex items-center justify-center">
+                <LucideIcon name="shield" className="text-black w-5 h-5" />
+            </div>
+            <span className="text-white font-bold tracking-tighter text-xl">A.R.A.N.Y.A</span>
+        </div>
+        <div className="flex gap-4 items-center">
+            {userRole && (
+                <span className="text-green-500 text-xs font-mono bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">
+                    {userRole==='gov'?'🛡 GOV OFFICIAL':'👤 CITIZEN'}
+                </span>
+            )}
+            {!userRole ? (
+                <button onClick={() => setView('login')} className="bg-green-500 hover:bg-green-400 transition-colors text-black px-4 py-1.5 rounded-full font-semibold text-sm">Access Terminal</button>
+            ) : (
+                <button onClick={() => { onLogout(); setView('intro'); }} className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-1.5 rounded-full font-semibold text-sm transition-colors">Log Out</button>
+            )}
+        </div>
+    </nav>
 );
 
-// ── PIPELINE SIMULATION ───────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+// ── LANDING PAGE ─────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+const LandingPage = ({ onStart }) => {
+    return (
+        <div className="min-h-screen bg-black text-white selection:bg-green-500 selection:text-black">
+            {/* Hero Section */}
+            <section className="relative h-screen flex items-center justify-center overflow-hidden">
+                <div className="grid-bg absolute inset-0 opacity-20"></div>
+                <div className="scan-line"></div>
+                <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-black/50 to-black pointer-events-none"></div>
+                
+                <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+                    <motion.div initial={{opacity:0,y:30}} animate={{opacity:1,y:0}} transition={{duration:0.8}}>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 text-green-500 text-xs font-mono mb-8">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                            </span>
+                            SYSTEM ONLINE: MONITORING 3.2M SQ KM
+                        </div>
+                        <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-6">
+                            ARANYA<span className="text-green-500">.</span>
+                        </h1>
+                        <p className="text-xl md:text-2xl text-slate-400 max-w-2xl mx-auto leading-relaxed mb-12">
+                            Autonomous Real-time Analytics for Natural Yield Area Protection.
+                        </p>
+                        
+                        <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+                            <button onClick={onStart} className="group relative px-10 py-4 bg-green-500 text-black font-bold rounded-xl overflow-hidden transition-all hover:scale-105 active:scale-95">
+                                <span className="relative z-10 flex items-center gap-2">
+                                    Initialize Protocol <LucideIcon name="arrow-right" className="w-5 h-5" />
+                                </span>
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30">
+                    <span className="text-[10px] font-mono uppercase tracking-[0.3em]">Scroll to Explore</span>
+                    <div className="w-px h-12 bg-gradient-to-b from-green-500 to-transparent"></div>
+                </div>
+            </section>
+
+            {/* Problem Statement Section */}
+            <section className="py-32 px-6 bg-[#050505]">
+                <div className="max-w-6xl mx-auto">
+                    <div className="grid md:grid-cols-2 gap-20 items-center">
+                        <div>
+                            <h2 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">
+                                Environmental threat detection is <span className="text-red-500">failing</span>.
+                            </h2>
+                            <div className="space-y-10">
+                                <div className="flex gap-6">
+                                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/20">
+                                        <LucideIcon name="clock" className="text-red-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold mb-2">Monitoring is Reactive</h3>
+                                        <p className="text-slate-400 leading-relaxed">Damage is usually discovered weeks after it becomes irreversible.</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-6">
+                                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/20">
+                                        <LucideIcon name="alert-circle" className="text-red-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold mb-2">Enforcement is Delayed</h3>
+                                        <p className="text-slate-400 leading-relaxed">Chain of command for environmental violations takes 15+ days on average.</p>
+                                    </div>
+                                </div>
+                                <div className="flex gap-6">
+                                    <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center shrink-0 border border-red-500/20">
+                                        <LucideIcon name="users" className="text-red-500" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold mb-2">Scale is Impossible</h3>
+                                        <p className="text-slate-400 leading-relaxed">Human observers cannot monitor 3.2M sq. km of land simultaneously.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="glass rounded-3xl p-8 border-white/10 relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4">
+                                <div className="flex items-center gap-2 text-[10px] font-mono text-green-500">
+                                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> LIVE INTEL
+                                </div>
+                            </div>
+                            <img src="https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=800&auto=format&fit=crop" className="rounded-2xl w-full aspect-square object-cover grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                            <div className="absolute bottom-12 left-12 right-12">
+                                <div className="text-xs font-mono text-green-500 mb-2">ZONE: ARAVALLI_RIDGE_HARYANA</div>
+                                <div className="text-2xl font-bold">Illegal Excavation Detected</div>
+                                <div className="mt-4 h-1 bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-full bg-red-500 w-3/4"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Tech Stack Section */}
+            <section className="py-32 px-6 border-t border-white/5">
+                <div className="max-w-6xl mx-auto text-center mb-20">
+                    <h2 className="text-4xl font-bold mb-6">The Satellite AI Core</h2>
+                    <p className="text-slate-400 max-w-2xl mx-auto">We process multispectral data from Cartosat and Sentinel streams to detect sub-meter changes in real-time.</p>
+                </div>
+                
+                <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {[
+                        {step:'01', title:'Ingest', desc:'Automated ingestion of daily satellite revisits.', icon:'cloud-download'},
+                        {step:'02', title:'Analyze', desc:'Historical pixel-comparison using Vision Transformers.', icon:'cpu'},
+                        {step:'03', title:'Verify', desc:'Cross-referencing with citizen-reported ground truth.', icon:'check-circle'},
+                        {step:'04', title:'Action', desc:'Generation of geo-tagged compliance dossiers.', icon:'file-text'}
+                    ].map(item => (
+                        <div key={item.step} className="glass p-8 rounded-3xl border-white/5 hover:border-green-500/30 transition-all">
+                            <div className="text-green-500 font-mono text-sm mb-4">{item.step}</div>
+                            <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center mb-6">
+                                <LucideIcon name={item.icon} className="text-white" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-3">{item.title}</h3>
+                            <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            {/* Portal Entry Section */}
+            <section className="py-32 px-6 bg-gradient-to-b from-black to-green-950/20">
+                <div className="max-w-4xl mx-auto text-center">
+                    <h2 className="text-5xl font-bold mb-8">Secure the Future.</h2>
+                    <p className="text-xl text-slate-400 mb-12">Deploying AI for national environmental governance and transparent citizen participation.</p>
+                    <div className="flex flex-col md:flex-row gap-6 justify-center">
+                        <button onClick={onStart} className="px-10 py-4 bg-white text-black font-bold rounded-xl hover:bg-green-500 transition-colors">Government Portal</button>
+                        <button onClick={onStart} className="px-10 py-4 glass border-white/10 font-bold rounded-xl hover:bg-white/5 transition-colors">Citizen Portal</button>
+                    </div>
+                </div>
+            </section>
+            
+            <footer className="py-12 px-6 border-t border-white/5 text-center text-slate-600 text-sm font-mono">
+                © 2024 ARANYA DEFENSE SYSTEMS • DEPLOYED ON ARAVALLI GRID
+            </footer>
+        </div>
+    );
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── PIPELINE SIMULATION SCREEN ───────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
 const PIPELINE_STAGES = [
-  { id:'ingest', step:'01', icon:'satellite', title:'Data Ingestion', subtitle:'Streaming Satellite + Environmental Feeds', color:'#22c55e',
-    description:'Raw multispectral imagery from Sentinel-2 (10m GSD) and Cartosat streams is ingested continuously. Weather telemetry, protected-zone shapefiles and administrative boundaries are fused simultaneously.',
-    dataPoints:[{label:'Sentinel-2 Band B4 (Red)',val:'10m GSD',status:'LIVE'},{label:'Sentinel-2 Band B8 (NIR)',val:'10m GSD',status:'LIVE'},{label:'Weather API – IMD',val:'15 min',status:'LIVE'},{label:'Protected Zone Shapefiles',val:'Loaded',status:'OK'},{label:'Admin Boundary Layers',val:'Loaded',status:'OK'}] },
-  { id:'preprocess', step:'02', icon:'cpu', title:'Preprocessing Engine', subtitle:'Cloud Masking · Spectral Indices · Temporal Alignment', color:'#3b82f6',
-    description:'Raw tiles are stripped of cloud contamination, calibrated radiometrically, and converted into spectral-index feature maps (NDVI, NDBI). Every pixel is temporally registered against a historical baseline.',
-    metrics:[{label:'Cloud Masking',pct:97,col:'#22c55e'},{label:'NDVI Computation',pct:100,col:'#22c55e'},{label:'NDBI Computation',pct:100,col:'#22c55e'},{label:'Temporal Alignment',pct:94,col:'#3b82f6'},{label:'Tile Extraction (ROI)',pct:100,col:'#22c55e'}] },
-  { id:'statedef', step:'03', icon:'layers', title:'State Definition', subtitle:'Zₜ ∈ {Vegetation, Barren, Built-up, Mining Scar, Water}', color:'#a855f7',
-    description:'Each region is assigned a time-dependent ecological state vector Zₜ. Transitions — especially Vegetation → Mining Scar inside Protected Zones — trigger the risk engine immediately.',
-    states:['Vegetation','Barren','Built-up','Mining Scar','Water Body'], stateColors:['#22c55e','#eab308','#f97316','#ef4444','#3b82f6'] },
-  { id:'risk', step:'04', icon:'activity', title:'Risk Emission Model', subtitle:'P(Illegal | Zₜ, ΔZₜ, proximity, rainfall)', color:'#ef4444',
-    description:'A probabilistic risk scoring model computes a 0–100 threat index per zone. It integrates vegetation loss delta, excavation growth rate, proximity to protected boundaries, historical violations, and rainfall correlation.',
-    factors:[{name:'Vegetation Loss Δ',weight:32,col:'#ef4444'},{name:'Excavation Growth',weight:27,col:'#f97316'},{name:'Proximity to Protected Zone',weight:22,col:'#eab308'},{name:'Historical Patterns',weight:12,col:'#a855f7'},{name:'Rainfall Correlation',weight:7,col:'#3b82f6'}] },
-  { id:'compliance', step:'05', icon:'shield-check', title:'Compliance Intelligence', subtitle:'Detection → Legal Reasoning → Actionable Alert', color:'#22c55e',
-    description:'When Risk Score > threshold, the system auto-triggers a geo-tagged violation alert, retrieves the relevant legal provision (Forest Conservation Act §4(1)), generates an AI explanation, and logs the dossier for enforcement.',
-    actions:[{label:'Threshold Evaluation',icon:'check-circle',done:true},{label:'Policy Retrieval (FCA §4)',icon:'book-open',done:true},{label:'Explanation Generation',icon:'file-text',done:true},{label:'Alert Dispatch (SMS/Email)',icon:'bell',done:true},{label:'Enforcement Dossier Logged',icon:'archive',done:true}] },
+    {
+        id: 'ingest',
+        step: '01',
+        icon: 'satellite',
+        title: 'Data Ingestion',
+        subtitle: 'Streaming Satellite + Environmental Feeds',
+        color: '#22c55e',
+        description: 'Raw multispectral imagery from Sentinel-2 (10m GSD) and Cartosat streams is ingested as a continuous feed. Weather telemetry, protected-zone shapefiles and administrative boundaries are fused simultaneously.',
+        dataPoints: [
+            { label: 'Sentinel-2 Band B4 (Red)', val: '10m GSD', status: 'LIVE' },
+            { label: 'Sentinel-2 Band B8 (NIR)', val: '10m GSD', status: 'LIVE' },
+            { label: 'Weather API – IMD / OpenWeather', val: '15 min', status: 'LIVE' },
+            { label: 'Protected Zone Shapefiles', val: 'Loaded', status: 'OK' },
+            { label: 'Admin Boundary Layers', val: 'Loaded', status: 'OK' },
+        ],
+        visual: 'ingest'
+    },
+    {
+        id: 'preprocess',
+        step: '02',
+        icon: 'cpu',
+        title: 'Neural Pre-processing',
+        subtitle: 'Atmospheric Correction & Index Computation',
+        color: '#3b82f6',
+        description: 'Atmospheric interference is removed via Sen2Cor algorithms. NDVI (Normalized Difference Vegetation Index) and NDWI (Water Index) are computed to highlight environmental health markers.',
+        metrics: [
+            { label: 'Atmospheric Haze Reduction', pct: 94, col: '#3b82f6' },
+            { label: 'Cloud Masking Accuracy', pct: 98, col: '#3b82f6' },
+            { label: 'Index Computation Speed', pct: 85, col: '#3b82f6' }
+        ],
+        visual: 'preprocess'
+    },
+    {
+        id: 'detect',
+        step: '03',
+        icon: 'scan',
+        title: 'Change Detection',
+        subtitle: 'Vision Transformer (ViT) Pixel Analysis',
+        color: '#eab308',
+        description: 'The AI core compares current imagery with historical baselines. Temporal anomalies—such as sudden vegetation loss or new road scars—are flagged using change-detection transformers.',
+        dataPoints: [
+            { label: 'Baseline Comparison', val: 'May 2023', status: 'OK' },
+            { label: 'Current State', val: 'May 2024', status: 'NEW' },
+            { label: 'Change Threshold', val: '0.15 NDVI', status: 'LIVE' }
+        ],
+        visual: 'detect'
+    },
+    {
+        id: 'classify',
+        step: '04',
+        icon: 'shield-alert',
+        title: 'Violation Classification',
+        subtitle: 'Risk Scoring & Threat Assessment',
+        color: '#ef4444',
+        description: 'Detected changes are cross-referenced with legal land-use maps. If an anomaly occurs in a protected forest or mining-prohibited zone, a high-priority violation alert is triggered.',
+        metrics: [
+            { label: 'Classification Confidence', pct: 92, col: '#ef4444' },
+            { label: 'Legal Violation Match', pct: 100, col: '#ef4444' },
+            { label: 'False Positive Rate', pct: 1.2, col: '#22c55e' }
+        ],
+        visual: 'classify'
+    },
+    {
+        id: 'dossier',
+        step: '05',
+        icon: 'file-check',
+        title: 'Dossier Generation',
+        subtitle: 'Automated Enforcement Intelligence',
+        color: '#a855f7',
+        description: 'A comprehensive enforcement dossier is auto-generated, containing geo-tagged evidence, before/after comparisons, and specific legal statutes violated, ready for immediate official action.',
+        visual: 'dossier'
+    }
 ];
 
-const VisualIngest = () => {
-  const [tick, setTick] = useState(0);
-  useEffect(() => { const t = setInterval(() => setTick(x => x+1), 400); return () => clearInterval(t); }, []);
-  const streams = ['B4 Red Band','B8 NIR Band','SWIR B11','Weather API','Shapefile Layer','Admin Boundary'];
-  return (
-    <div className="flex flex-col gap-2 w-full">
-      {streams.map((s,i) => (
-        <div key={s} className="flex items-center gap-2 text-[10px] font-mono">
-          <div className={`w-2 h-2 rounded-full flex-shrink-0 ${tick%(i+2)===0?'bg-green-500':'bg-green-500/30'}`} style={{transition:'background 0.1s'}}></div>
-          <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
-            <div className="h-full bg-green-500/60 shimmer-bar" style={{width:`${60+i*6}%`}}></div>
-          </div>
-          <span className="text-slate-500 w-24 truncate">{s}</span>
-          <span className="text-green-500">✓</span>
+const FlowDiagram = ({ activeStage, stages, onSelect }) => {
+    return (
+        <div className="flex items-center justify-between px-8 py-10 relative">
+            {/* Connecting lines background */}
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-white/5 -translate-y-1/2 z-0"></div>
+            
+            {stages.map((s, i) => (
+                <div key={s.id} className="relative z-10 flex flex-col items-center gap-3 cursor-pointer group" onClick={() => onSelect(i)}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500 border-2 ${activeStage === i ? 'bg-white text-black scale-110 shadow-[0_0_20px_rgba(255,255,255,0.2)]' : 'bg-black text-slate-500 border-white/10 group-hover:border-white/30'}`} style={{borderColor: activeStage === i ? s.color : undefined}}>
+                        <LucideIcon name={s.icon} className="w-5 h-5" />
+                    </div>
+                    <span className={`text-[10px] font-mono font-bold tracking-widest uppercase transition-colors ${activeStage === i ? 'text-white' : 'text-slate-600'}`}>{s.id}</span>
+                    {i < stages.length - 1 && (
+                        <div className="absolute top-6 -right-[50%] w-full h-px pointer-events-none">
+                            <svg className="w-full h-4 overflow-visible">
+                                <line x1="0" y1="0" x2="100%" y2="0" className={`flow-arrow ${i < activeStage ? 'stroke-green-500' : 'stroke-white/10'}`} strokeWidth="2" />
+                            </svg>
+                        </div>
+                    )}
+                </div>
+            ))}
         </div>
-      ))}
-      <div className="mt-3 p-2 bg-green-500/5 border border-green-500/20 rounded-lg text-[10px] font-mono text-green-400 terminal-cursor">
-        INGESTING 1,847 TILES @ 10m GSD...
-      </div>
-    </div>
-  );
+    );
 };
-
-const VisualPreprocess = () => {
-  const [active, setActive] = useState(0);
-  useEffect(() => { const t = setInterval(() => setActive(x=>(x+1)%3), 900); return () => clearInterval(t); }, []);
-  const panels = ['RAW TILE','CLOUD MASKED','NDVI INDEX'];
-  const colors = ['from-zinc-800','from-blue-900/40','from-green-900/40'];
-  const overlays = [
-    <div key="raw" className="absolute inset-0 opacity-20" style={{backgroundImage:'radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px)',backgroundSize:'8px 8px'}}></div>,
-    <div key="m" className="absolute inset-0 flex items-center justify-center"><div className="w-16 h-16 rounded-full bg-white/10 border border-white/20"></div></div>,
-    <div key="n" className="absolute inset-0" style={{background:'linear-gradient(135deg,#15803d 0%,#22c55e 40%,#eab308 70%,#ef4444 100%)',opacity:0.6}}></div>
-  ];
-  return (
-    <div className="flex gap-3 w-full">
-      {panels.map((p,i) => (
-        <div key={p} className={`flex-1 relative rounded-xl overflow-hidden border transition-all duration-300 ${active===i?'border-green-500/60':'border-white/10'}`} style={{height:140,background:'#111'}}>
-          <div className={`absolute inset-0 bg-gradient-to-br ${colors[i]} to-black/80`}></div>
-          {overlays[i]}
-          <div className="absolute bottom-2 left-2 right-2 text-[9px] font-mono text-slate-400">{p}</div>
-          {active===i && <div className="scan-line"></div>}
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const VisualStateDef = ({ states, stateColors }) => {
-  const [active, setActive] = useState(0);
-  useEffect(() => { const t = setInterval(() => setActive(x=>(x+1)%states.length), 1200); return () => clearInterval(t); }, [states.length]);
-  const grid = useMemo(() => Array.from({length:200}, () => Math.floor(Math.random()*states.length)), [states.length]);
-  return (
-    <div className="w-full">
-      <div className="grid gap-1" style={{gridTemplateColumns:'repeat(20,1fr)'}}>
-        {grid.map((s,i) => <div key={i} className="rounded-[2px] transition-all duration-500" style={{height:10,background:active===s?stateColors[s]:stateColors[s]+'33',opacity:active===s?1:0.4}}></div>)}
-      </div>
-      <div className="flex flex-wrap gap-2 mt-3">
-        {states.map((s,i) => (
-          <div key={s} className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono border transition-all ${active===i?'scale-105':''}`}
-            style={{color:stateColors[i],borderColor:active===i?stateColors[i]:'transparent',background:`${stateColors[i]}15`}}>
-            <div className="w-2 h-2 rounded-full" style={{background:stateColors[i]}}></div>{s}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const VisualRisk = ({ factors }) => {
-  const [score, setScore] = useState(0);
-  useEffect(() => { let v=0; const t=setInterval(()=>{v=Math.min(v+2,88);setScore(v);if(v>=88)clearInterval(t);},30); return ()=>clearInterval(t); }, []);
-  const col = score>=75?'#ef4444':score>=50?'#eab308':'#22c55e';
-  return (
-    <div className="flex gap-4 items-start w-full">
-      <div className="flex flex-col items-center gap-2">
-        <div className="relative w-28 h-28">
-          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8"/>
-            <circle cx="50" cy="50" r="40" fill="none" stroke={col} strokeWidth="8" strokeDasharray={`${(score/100)*251.2} 251.2`} strokeLinecap="round" style={{transition:'stroke-dasharray 0.05s'}}/>
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-black" style={{color:col}}>{score}</span>
-            <span className="text-[9px] font-mono text-slate-500">RISK</span>
-          </div>
-        </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold" style={{background:`${col}20`,color:col}}>{score>=75?'HIGH RISK':score>=50?'MEDIUM':'LOW'}</span>
-      </div>
-      <div className="flex-1 space-y-2">
-        {factors.map(f => (
-          <div key={f.name}>
-            <div className="flex justify-between text-[9px] font-mono mb-0.5">
-              <span className="text-slate-400">{f.name}</span>
-              <span style={{color:f.col}}>{f.weight}%</span>
-            </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all duration-1000" style={{width:`${f.weight}%`,background:f.col}}></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const VisualCompliance = ({ actions }) => {
-  const [revealed, setRevealed] = useState(0);
-  useEffect(() => { const t=setInterval(()=>setRevealed(x=>Math.min(x+1,actions.length)),600); return ()=>clearInterval(t); }, [actions.length]);
-  return (
-    <div className="w-full space-y-2">
-      <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-mono text-red-400 mb-4">
-        ⚠ RISK THRESHOLD EXCEEDED — ZONE: ARAVALLI-C — SCORE: 88/100
-      </div>
-      {actions.map((a,i) => (
-        <div key={a.label} className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-500 ${i<revealed?'border-green-500/30 bg-green-500/5':'border-white/5 opacity-30'}`}>
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${i<revealed?'bg-green-500':'bg-zinc-800'}`}>
-            {i<revealed ? <LucideIcon name="check" className="w-3 h-3 text-black"/> : <LucideIcon name={a.icon} className="w-3 h-3 text-slate-600"/>}
-          </div>
-          <span className={`text-xs font-mono ${i<revealed?'text-white':'text-slate-600'}`}>{a.label}</span>
-          {i<revealed && <span className="ml-auto text-[9px] text-green-500 font-mono">DONE</span>}
-        </div>
-      ))}
-      {revealed>=actions.length && (
-        <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-[10px] font-mono text-green-400 mt-2">
-          ✓ DOSSIER GENERATED — ENFORCEMENT TEAM NOTIFIED — LOG ID: {genId()}
-        </div>
-      )}
-    </div>
-  );
-};
-
-const FlowDiagram = ({ activeStage, stages, onSelect }) => (
-  <div className="relative w-full overflow-x-auto py-4">
-    <div className="flex items-center gap-0 min-w-max mx-auto px-4">
-      {stages.map((s, i) => (
-        <React.Fragment key={s.id}>
-          <button onClick={() => onSelect(i)}
-            className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-xl transition-all border ${activeStage===i?'border-current scale-105':'border-transparent hover:border-white/10'}`}
-            style={{color:activeStage===i?s.color:'#64748b',background:activeStage===i?`${s.color}12`:'transparent'}}>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center border-2 transition-all"
-              style={{borderColor:activeStage===i?s.color:'#3f3f46',background:activeStage===i?`${s.color}20`:'#18181b'}}>
-              <LucideIcon name={s.icon} className="w-4 h-4" color={activeStage===i?s.color:'#64748b'}/>
-            </div>
-            <span className="text-[9px] font-mono font-bold text-center leading-tight" style={{maxWidth:64}}>{s.step}<br/>{s.title}</span>
-          </button>
-          {i<stages.length-1 && (
-            <div className="flex items-center mx-1">
-              <svg width="32" height="12">
-                <line x1="0" y1="6" x2="26" y2="6" stroke={activeStage>i?stages[i].color:'#3f3f46'} strokeWidth="1.5" strokeDasharray="4 3" className={activeStage>i?'flow-arrow':''}/>
-                <polygon points="22,2 30,6 22,10" fill={activeStage>i?stages[i].color:'#3f3f46'}/>
-              </svg>
-            </div>
-          )}
-        </React.Fragment>
-      ))}
-    </div>
-  </div>
-);
 
 const SimulationScreen = ({ onComplete }) => {
-  const [stage, setStage] = useState(0);
-  const [autoplay, setAutoplay] = useState(true);
-  const [introPhase, setIntroPhase] = useState(true);
-  const [bootLines, setBootLines] = useState([]);
-  const stageData = PIPELINE_STAGES[stage];
+    const [stage, setStage] = useState(0);
+    const [autoplay, setAutoplay] = useState(true);
+    const [booting, setBooting] = useState(true);
+    const [bootLines, setBootLines] = useState([]);
+    
+    const BOOT_SEQUENCE = [
+        "> INITIALIZING ARANYA CORE...",
+        "> LOADING SATELLITE HANDLERS [SENTINEL-2, CARTOSAT]",
+        "> CONNECTING TO PROTECTED ZONE DATABASE...",
+        "> ESTABLISHING NEURAL PIPELINE...",
+        "> SYSTEM READY. COMMENCING MONITORING."
+    ];
 
-  const BOOT_SEQUENCE = [
-    '> Initializing A.R.A.N.Y.A Geospatial Core...',
-    '> Loading Sentinel-2 data connectors... OK',
-    '> Mounting protected zone shapefiles... OK',
-    '> Establishing Weather API stream... OK',
-    '> Calibrating Change-Detection Transformer... OK',
-    '> Risk Emission Model loaded... OK',
-    '> Compliance Intelligence Engine online... OK',
-    '████████████████████ SYSTEM READY',
-  ];
+    useEffect(() => {
+        if (booting) {
+            let i = 0;
+            const interval = setInterval(() => {
+                if (i < BOOT_SEQUENCE.length) {
+                    setBootLines(p => [...p, BOOT_SEQUENCE[i]]);
+                    i++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => setBooting(false), 800);
+                }
+            }, 400);
+            return () => clearInterval(interval);
+        }
+    }, [booting]);
 
-  useEffect(() => {
-    if (!introPhase) return;
-    let i = 0;
-    const t = setInterval(() => {
-      if (i < BOOT_SEQUENCE.length) setBootLines(p => [...p, BOOT_SEQUENCE[i]]);
-      i++;
-      if (i >= BOOT_SEQUENCE.length) { clearInterval(t); setTimeout(() => setIntroPhase(false), 800); }
-    }, 320);
-    return () => clearInterval(t);
-  }, [introPhase]);
+    useEffect(() => {
+        if (!booting && autoplay) {
+            const timer = setInterval(() => {
+                setStage(s => (s + 1) % PIPELINE_STAGES.length);
+            }, 6000);
+            return () => clearInterval(timer);
+        }
+    }, [booting, autoplay]);
 
-  useEffect(() => {
-    if (introPhase || !autoplay) return;
-    const t = setInterval(() => {
-      setStage(s => { if (s >= PIPELINE_STAGES.length-1) { clearInterval(t); return s; } return s+1; });
-    }, 5500);
-    return () => clearInterval(t);
-  }, [autoplay, introPhase]);
+    const stageData = PIPELINE_STAGES[stage];
+    const goNext = () => { setAutoplay(false); if (stage < PIPELINE_STAGES.length - 1) setStage(stage + 1); else onComplete(); };
+    const goPrev = () => { setAutoplay(false); if (stage > 0) setStage(stage - 1); };
 
-  const goNext = () => { if (stage < PIPELINE_STAGES.length-1) { setStage(s=>s+1); setAutoplay(false); } else onComplete(); };
-  const goPrev = () => { if (stage > 0) { setStage(s=>s-1); setAutoplay(false); } };
-
-  const renderVisual = () => {
-    switch(stageData.id) {
-      case 'ingest': return <VisualIngest/>;
-      case 'preprocess': return <VisualPreprocess/>;
-      case 'statedef': return <VisualStateDef states={stageData.states} stateColors={stageData.stateColors}/>;
-      case 'risk': return <VisualRisk factors={stageData.factors}/>;
-      case 'compliance': return <VisualCompliance actions={stageData.actions}/>;
-      default: return null;
-    }
-  };
-
-  if (introPhase) return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center px-8 pt-20">
-      <div className="w-full max-w-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="font-mono text-green-500 text-sm font-bold tracking-widest uppercase">A.R.A.N.Y.A System Boot</span>
-        </div>
-        <div className="bg-zinc-950 border border-green-500/20 rounded-2xl p-6 font-mono text-xs text-green-400 space-y-1.5" style={{minHeight:280}}>
-          {bootLines.map((line,i) => <div key={i} className="sim-stage"><span style={{color:line?.includes('READY')?'#22c55e':line?.includes('...')?'#94a3b8':'#22c55e'}}>{line}</span></div>)}
-          {bootLines.length>0 && bootLines.length<BOOT_SEQUENCE.length && <div className="terminal-cursor text-green-500">&nbsp;</div>}
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen bg-[#030303] pt-20 pb-10 px-4">
-      <div className="max-w-6xl mx-auto mb-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-500 font-mono text-xs tracking-widest uppercase">Pipeline Simulation</span>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold">How A.R.A.N.Y.A Works</h1>
-            <p className="text-slate-500 text-sm mt-1">Step through the full end-to-end intelligence pipeline</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button onClick={() => setAutoplay(p=>!p)}
-              className={`flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-xl border transition-all ${autoplay?'bg-green-500/10 border-green-500/30 text-green-400':'bg-white/5 border-white/10 text-slate-400'}`}>
-              <LucideIcon name={autoplay?'pause':'play'} className="w-3 h-3"/> {autoplay?'Auto':'Manual'}
-            </button>
-            <button onClick={onComplete} className="flex items-center gap-2 bg-white text-black text-xs font-bold px-5 py-2 rounded-xl hover:bg-green-500 transition-colors">
-              Enter System <LucideIcon name="arrow-right" className="w-3 h-3"/>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto mb-6 glass rounded-2xl border border-white/5 overflow-hidden">
-        <FlowDiagram activeStage={stage} stages={PIPELINE_STAGES} onSelect={i=>{setStage(i);setAutoplay(false);}}/>
-        <div className="px-4 pb-3">
-          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-green-500 rounded-full transition-all duration-700" style={{width:`${((stage+1)/PIPELINE_STAGES.length)*100}%`}}></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
-        <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-5 sim-stage" key={stage}>
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{background:`${stageData.color}15`,border:`2px solid ${stageData.color}40`}}>
-              <LucideIcon name={stageData.icon} className="w-6 h-6" color={stageData.color}/>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-mono text-xs font-bold" style={{color:stageData.color}}>STAGE {stageData.step}</span>
-                <span className="w-px h-3 bg-white/20"></span>
-                <span className="text-slate-500 text-xs font-mono">of {PIPELINE_STAGES.length}</span>
-              </div>
-              <h2 className="text-xl font-bold text-white">{stageData.title}</h2>
-              <p className="text-xs font-mono text-slate-500 mt-0.5">{stageData.subtitle}</p>
-            </div>
-          </div>
-          <p className="text-sm text-slate-300 leading-relaxed">{stageData.description}</p>
-          {stageData.dataPoints && (
-            <div className="space-y-2">
-              {stageData.dataPoints.map(d => (
-                <div key={d.label} className="flex items-center gap-3 py-2 border-b border-white/5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
-                  <span className="text-xs text-slate-300 flex-1">{d.label}</span>
-                  <span className="text-xs font-mono text-slate-500">{d.val}</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{background:d.status==='LIVE'?'rgba(34,197,94,0.15)':'rgba(59,130,246,0.15)',color:d.status==='LIVE'?'#22c55e':'#60a5fa'}}>{d.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {stageData.metrics && (
-            <div className="space-y-3">
-              {stageData.metrics.map(m => (
-                <div key={m.label}>
-                  <div className="flex justify-between text-xs mb-1"><span className="text-slate-400">{m.label}</span><span className="font-mono" style={{color:m.col}}>{m.pct}%</span></div>
-                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${m.pct}%`,background:m.col,transition:'width 1s ease'}}></div></div>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-3 mt-auto pt-4 border-t border-white/5">
-            <button onClick={goPrev} disabled={stage===0} className="flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 disabled:opacity-30 transition-all">
-              <LucideIcon name="arrow-left" className="w-3 h-3"/> Prev
-            </button>
-            <button onClick={goNext} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl text-black" style={{background:stageData.color}}>
-              {stage<PIPELINE_STAGES.length-1?<><span>Next Stage</span><LucideIcon name="arrow-right" className="w-3 h-3"/></>:<><span>Enter System</span><LucideIcon name="log-in" className="w-3 h-3"/></>}
-            </button>
-          </div>
-        </div>
-
-        <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-4 sim-stage" key={`v-${stage}`}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Live Simulation</span>
-            <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div><span className="text-[10px] font-mono text-green-500">RUNNING</span></div>
-          </div>
-          <div className="flex-1">{renderVisual()}</div>
-          <div className="p-3 rounded-xl border text-xs font-mono" style={{background:`${stageData.color}08`,borderColor:`${stageData.color}25`,color:stageData.color}}>
-            {stage===0&&'📡 Cartosat-2E + Sentinel-2 streams fused at 10m resolution, 5-day revisit cycle'}
-            {stage===1&&'🔬 NDVI range [−0.1 → 0.9] computed per pixel — baseline Δ flagged if |ΔNDVI| > 0.15'}
-            {stage===2&&'🗺 Vegetation → Mining Scar transition in Protected Zone = HIGH PENALTY state'}
-            {stage===3&&'📊 P(Illegal | Zₜ, ΔZₜ, proximity, rainfall) — Gradient Boosted Scoring Engine'}
-            {stage===4&&'⚖ Forest Conservation Act §4(1) — Violation auto-tagged, dossier auto-generated'}
-          </div>
-          <div className="flex gap-2 justify-center pt-2">
-            {PIPELINE_STAGES.map((_,i) => (
-              <button key={i} onClick={()=>{setStage(i);setAutoplay(false);}} className="w-2 h-2 rounded-full transition-all"
-                style={{background:i===stage?stageData.color:'rgba(255,255,255,0.15)',transform:i===stage?'scale(1.5)':'scale(1)'}}></button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ── LOGIN ─────────────────────────────────────────────────────────
-const LoginScreen = ({ onLogin }) => (
-  <div className="min-h-screen bg-black flex items-center justify-center px-6">
-    <div className="absolute inset-0 grid-bg opacity-20"></div>
-    <div className="grid md:grid-cols-2 gap-8 max-w-5xl w-full relative z-10">
-      <div onClick={() => onLogin('gov')}
-        className="p-10 glass rounded-3xl cursor-pointer group hover:border-green-500/50 transition-all border border-white/5">
-        <div className="w-16 h-16 bg-zinc-800 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-green-500 transition-colors">
-          <LucideIcon name="shield" className="w-8 h-8 text-green-500 group-hover:text-black transition-colors"/>
-        </div>
-        <h2 className="text-3xl font-bold text-white mb-4">Government Official</h2>
-        <p className="text-slate-400 mb-8">Access national surveillance dashboards, manage violations, and coordinate enforcement efforts.</p>
-        <div className="flex items-center gap-2 text-green-500 font-bold">Login with Digital ID <LucideIcon name="arrow-right" className="w-4 h-4"/></div>
-      </div>
-      <div onClick={() => onLogin('citizen')}
-        className="p-10 bg-white rounded-3xl cursor-pointer group hover:shadow-2xl transition-all">
-        <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-8 group-hover:bg-blue-600 transition-colors">
-          <LucideIcon name="user" className="w-8 h-8 text-blue-600 group-hover:text-white transition-colors"/>
-        </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-4">Citizen Portal</h2>
-        <p className="text-slate-600 mb-8">Report environmental concerns, track investigation status, and view transparent impact scores.</p>
-        <div className="flex items-center gap-2 text-blue-600 font-bold">Login with Mobile <LucideIcon name="arrow-right" className="w-4 h-4"/></div>
-      </div>
-    </div>
-  </div>
-);
-
-// ── GOV DASHBOARD ─────────────────────────────────────────────────
-const GovDashboard = ({ reports, setReports, onLogout }) => {
-  const notify = useNotify();
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [activeNav, setActiveNav] = useState('map');
-  const [searchQ, setSearchQ] = useState('');
-  const [filterStatus, setFilterStatus] = useState('All');
-  const [alerts, setAlerts] = useState([
-    {id:1,type:"CRITICAL",msg:"Illegal mining detected — Aravalli Zone C, Charkhi Dadri",time:"Just now",read:false},
-    {id:2,type:"WARNING",msg:"Vegetation loss above 15% — Pichopa Kalan, Bhiwani",time:"12m ago",read:false},
-    {id:3,type:"INFO",msg:"SatelliteCarto-4 revisit completed — Haryana belt",time:"1h ago",read:true},
-    {id:4,type:"WARNING",msg:"New citizen report — Rajawas Protected Forest",time:"2h ago",read:true},
-  ]);
-  const unread = alerts.filter(a=>!a.read).length;
-  const filteredReports = useMemo(() => reports.filter(r => {
-    const q = searchQ.toLowerCase();
-    return (r.topic.toLowerCase().includes(q)||r.id.toLowerCase().includes(q)||(r.zone||'').toLowerCase().includes(q)) && (filterStatus==='All'||r.status===filterStatus);
-  }), [reports, searchQ, filterStatus]);
-
-  const updateStatus = (id, status) => { setReports(p=>p.map(r=>r.id===id?{...r,status}:r)); setSelectedReport(p=>p&&p.id===id?{...p,status}:p); notify(`Status updated → ${status}`,'success'); };
-  const deleteReport = (id) => { setReports(p=>p.filter(r=>r.id!==id)); setSelectedReport(null); notify('Report removed','error'); };
-  const exportDossier = (rep) => {
-    const txt = `A.R.A.N.Y.A ENFORCEMENT DOSSIER\n${'='.repeat(40)}\nID: ${rep.id}\nDate: ${rep.date}\nTopic: ${rep.topic}\nZone: ${rep.zone||'—'}\nCoords: ${rep.coords}\nStatus: ${rep.status}\nRisk: ${rep.risk}%\nLoss: ${rep.loss}\n\nDESCRIPTION:\n${rep.description}\n\nGenerated: ${new Date().toLocaleString()}`;
-    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt],{type:'text/plain'})); a.download = `${rep.id}-dossier.txt`; a.click();
-    notify('Dossier exported','success');
-  };
-
-  return (
-    <div className="min-h-screen bg-[#050505] text-slate-200 pt-20 flex" style={{height:'100vh'}}>
-      <div className="w-64 border-r border-white/5 p-4 flex-col gap-2 hidden lg:flex flex-shrink-0">
-        {[{id:'map',label:'Intelligence Map',icon:'map'},{id:'reports',label:'Compliance Reports',icon:'file-text'},{id:'analytics',label:'Impact Analytics',icon:'bar-chart-3'},{id:'alerts',label:'Enforcement Ops',icon:'bell',badge:unread}].map(item=>(
-          <button key={item.id} onClick={()=>setActiveNav(item.id)}
-            className={`p-3 rounded-xl flex items-center gap-3 w-full text-left transition-colors relative ${activeNav===item.id?'bg-green-500/10 text-green-500 font-semibold':'hover:bg-white/5 text-slate-400'}`} style={{fontSize:14}}>
-            <LucideIcon name={item.icon} className={`w-5 h-5 ${activeNav===item.id?'text-green-500':'text-slate-500'}`}/>{item.label}
-            {item.badge>0&&<span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{item.badge}</span>}
-          </button>
-        ))}
-        <div className="mt-auto p-3 hover:bg-red-500/10 text-red-500 rounded-xl flex items-center gap-3 cursor-pointer transition-colors" onClick={onLogout}>
-          <LucideIcon name="x" className="w-5 h-5"/> Terminate Session
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col p-6 gap-6 overflow-y-auto">
-        <div className="flex justify-between items-center bg-zinc-900/50 p-4 rounded-2xl border border-white/5 flex-wrap gap-3">
-          <div className="flex items-center gap-6 flex-wrap">
-            <div><span className="text-xs font-mono text-slate-500 uppercase">System Status</span><div className="flex items-center gap-2"><div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div><span className="font-bold text-white">ACTIVE OPS</span></div></div>
-            <div className="h-10 w-[1px] bg-white/10 hidden md:block"></div>
-            <div><span className="text-xs font-mono text-slate-500 uppercase">Satellite Stream</span><div className="font-bold text-white">CartoSat-2E — 0.8m GSD</div></div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <input value={searchQ} onChange={e=>setSearchQ(e.target.value)} placeholder="Search reports…" className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none w-36 placeholder:text-slate-600"/>
-            <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} className="bg-zinc-900 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-300 outline-none cursor-pointer">
-              <option value="All">All Statuses</option>
-              {STATUSES.map(s=><option key={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {activeNav==='map' && (
-          <div className="grid lg:grid-cols-3 gap-6 flex-1">
-            <div className="lg:col-span-2 glass rounded-3xl relative overflow-hidden border border-white/5" style={{minHeight:400}}>
-              <div className="absolute top-4 left-4 z-10 flex gap-2">
-                <span className="bg-black/80 px-3 py-1 rounded text-[10px] font-bold border border-white/10">VISIBLE SPECTRUM</span>
-                <span className="bg-red-500/20 text-red-400 px-3 py-1 rounded text-[10px] font-bold border border-red-500/30">RISK HEATMAP</span>
-              </div>
-              <div className="absolute inset-0 bg-[#0a0a0a]">
-                <svg className="w-full h-full opacity-30" viewBox="0 0 800 600">
-                  <path d="M100 100 Q 200 50 400 150 T 700 100" fill="none" stroke="#22c55e" strokeWidth="1"/>
-                  <path d="M50 400 Q 300 450 500 300 T 750 500" fill="none" stroke="#22c55e" strokeWidth="0.5"/>
-                  <circle cx="200" cy="150" r="100" fill="rgba(220,38,38,0.1)"/>
-                  <circle cx="200" cy="150" r="40" fill="rgba(220,38,38,0.2)"/>
-                  <circle cx="500" cy="350" r="60" fill="rgba(220,38,38,0.15)"/>
-                </svg>
-                {reports.map((rep,i)=>{
-                  const positions=[{top:'140px',left:'190px'},{bottom:'240px',left:'490px'},{top:'220px',left:'360px'},{top:'300px',left:'560px'}];
-                  const pos=positions[i%positions.length];
-                  const col=rep.risk>=75?'bg-red-600':rep.risk>=50?'bg-yellow-500':'bg-green-500';
-                  return (
-                    <div key={rep.id} className="absolute cursor-pointer" style={{...pos,zIndex:5}} onClick={()=>setSelectedReport(rep)}>
-                      <div className={`w-4 h-4 ${col} rounded-full border-2 border-white shadow-lg`}></div>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="absolute bottom-4 right-4 z-10">
-                <div className="bg-black/80 p-4 rounded-xl border border-white/10 w-64 space-y-2">
-                  <div className="flex justify-between text-xs font-mono"><span>Monitoring Zone:</span><span className="text-green-500">Haryana Aravali Belt</span></div>
-                  <div className="w-full bg-white/5 h-1 rounded overflow-hidden"><div className="bg-green-500 h-full w-2/3"></div></div>
-                  <p className="text-[10px] text-slate-500 italic font-mono">Scanning for pixel delta &gt; 15%</p>
-                </div>
-              </div>
-              <div className="scan-line"></div>
-            </div>
-            <div className="glass rounded-3xl p-6 border border-white/5 flex flex-col gap-6 overflow-y-auto">
-              <h3 className="font-bold flex items-center gap-2"><LucideIcon name="bell" className="w-4 h-4 text-green-500"/> Intelligence Feed</h3>
-              {alerts.map(alert=>(
-                <div key={alert.id} onClick={()=>setAlerts(p=>p.map(a=>a.id===alert.id?{...a,read:true}:a))}
-                  className={`p-4 bg-zinc-900 border rounded-xl cursor-pointer transition-all ${alert.read?'border-white/5 opacity-60':'border-white/10'}`}>
-                  <div className="flex justify-between items-start mb-1">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${alert.type==='CRITICAL'?'bg-red-500/20 text-red-500':'bg-yellow-500/20 text-yellow-500'}`}>{alert.type}</span>
-                    <div className="flex items-center gap-1.5"><span className="text-[10px] font-mono text-slate-600">{alert.time}</span>{!alert.read&&<div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>}</div>
-                  </div>
-                  <p className="text-sm font-medium leading-tight">{alert.msg}</p>
-                </div>
-              ))}
-              <div className="mt-auto pt-4 border-t border-white/5 space-y-3">
-                <h4 className="text-xs font-mono text-slate-500 uppercase">Recent Violations</h4>
-                {filteredReports.map(rep=>(
-                  <div key={rep.id} onClick={()=>setSelectedReport(rep)} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition-colors cursor-pointer">
-                    <div className="w-10 h-10 bg-zinc-800 rounded flex items-center justify-center text-xs font-bold text-red-400">{rep.risk}%</div>
-                    <div className="flex-1 overflow-hidden"><div className="text-xs font-bold truncate">{rep.topic}</div><div className="text-[10px] text-slate-500 font-mono">{rep.id}</div></div>
-                    <LucideIcon name="chevron-right" className="w-4 h-4 text-slate-700"/>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeNav==='reports' && (
-          <div className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold">Compliance Reports <span className="text-slate-600 font-normal text-sm">({filteredReports.length})</span></h2>
-            <div className="glass rounded-2xl border border-white/5 overflow-hidden">
-              <table className="w-full" style={{borderCollapse:'collapse'}}>
-                <thead><tr className="border-b border-white/5">{['ID','Topic','Zone','Risk','Status','Date','Actions'].map(h=><th key={h} className="px-4 py-3 text-left text-[10px] font-mono text-slate-500 uppercase">{h}</th>)}</tr></thead>
-                <tbody>
-                  {filteredReports.length===0&&<tr><td colSpan={7} className="text-center py-10 text-slate-600 text-sm italic">No reports match.</td></tr>}
-                  {filteredReports.map(rep=>(
-                    <tr key={rep.id} onClick={()=>setSelectedReport(rep)} className="border-b border-white/5 hover:bg-white/2 transition-colors cursor-pointer">
-                      <td className="px-4 py-3 text-green-500 font-mono text-xs">{rep.id}</td>
-                      <td className="px-4 py-3 text-sm font-semibold">{rep.topic}</td>
-                      <td className="px-4 py-3 text-xs text-slate-400">{rep.zone||'—'}</td>
-                      <td className="px-4 py-3 text-sm font-bold" style={{color:rep.risk>=75?'#ef4444':rep.risk>=50?'#eab308':'#22c55e'}}>{rep.risk}%</td>
-                      <td className="px-4 py-3"><span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{background:rep.status==='Resolved'?'rgba(34,197,94,0.15)':rep.status==='Under Investigation'?'rgba(239,68,68,0.15)':'rgba(234,179,8,0.15)',color:rep.status==='Resolved'?'#22c55e':rep.status==='Under Investigation'?'#ef4444':'#eab308'}}>{rep.status}</span></td>
-                      <td className="px-4 py-3 text-xs text-slate-500 font-mono">{rep.date}</td>
-                      <td className="px-4 py-3" onClick={e=>e.stopPropagation()}>
-                        <div className="flex gap-2">
-                          <button onClick={()=>exportDossier(rep)} className="p-1.5 bg-green-500/10 hover:bg-green-500/20 rounded"><LucideIcon name="download" className="w-3 h-3 text-green-500"/></button>
-                          <button onClick={()=>deleteReport(rep.id)} className="p-1.5 bg-red-500/10 hover:bg-red-500/20 rounded"><LucideIcon name="trash" className="w-3 h-3 text-red-500"/></button>
+    const renderVisual = () => {
+        switch(stageData.visual) {
+            case 'ingest':
+                return (
+                    <div className="relative w-full h-full bg-black rounded-2xl overflow-hidden border border-white/5 flex items-center justify-center">
+                        <div className="grid-bg absolute inset-0 opacity-20"></div>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                            <div className="relative">
+                                <div className="w-32 h-32 rounded-full border border-green-500/30 flex items-center justify-center animate-pulse">
+                                    <LucideIcon name="satellite" className="w-12 h-12 text-green-500" />
+                                </div>
+                                <div className="absolute -top-4 -left-4 w-40 h-40 border border-green-500/10 rounded-full animate-spin" style={{animationDuration:'10s'}}></div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-[10px] font-mono text-green-500 mb-1">DATA STREAM ACTIVE</div>
+                                <div className="flex gap-1">
+                                    {[1,2,3,4,5].map(i => <div key={i} className="w-1 h-4 bg-green-500/40 rounded-full waveform-bar" style={{animationDelay:`${i*0.1}s`}}></div>)}
+                                </div>
+                            </div>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {activeNav==='analytics' && (
-          <div className="flex flex-col gap-6">
-            <h2 className="text-xl font-bold">Impact Analytics</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="glass rounded-2xl p-6 border border-white/5">
-                <h3 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-4">Violation Types</h3>
-                {VIOLATION_TYPES.map(type=>{const c=reports.filter(r=>r.violationType===type).length;if(!c)return null;return(<div key={type} className="mb-3"><div className="flex justify-between text-xs mb-1"><span className="text-slate-300">{type}</span><span className="text-green-500 font-mono">{c}</span></div><div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-green-500 rounded-full" style={{width:`${(c/reports.length)*100}%`}}></div></div></div>);})}
-              </div>
-              <div className="glass rounded-2xl p-6 border border-white/5">
-                <h3 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-4">Status Summary</h3>
-                {STATUSES.map(status=>{const c=reports.filter(r=>r.status===status).length;if(!c)return null;const col=status==='Resolved'?'#22c55e':status==='Under Investigation'?'#ef4444':'#eab308';return(<div key={status} className="mb-3"><div className="flex justify-between text-xs mb-1"><span className="text-slate-300">{status}</span><span className="font-mono" style={{color:col}}>{c}</span></div><div className="h-1.5 bg-white/5 rounded-full overflow-hidden"><div className="h-full rounded-full" style={{width:`${(c/reports.length)*100}%`,background:col}}></div></div></div>);})}
-              </div>
-              <div className="glass rounded-2xl p-6 border border-white/5">
-                <h3 className="text-xs font-mono text-slate-500 uppercase tracking-wider mb-4">Risk Overview</h3>
-                {[['High (75%+)',r=>r.risk>=75,'#ef4444'],['Medium (50-74%)',r=>r.risk>=50&&r.risk<75,'#eab308'],['Low (<50%)',r=>r.risk<50,'#22c55e']].map(([label,fn,col])=>{const c=reports.filter(fn).length;return(<div key={label} className="flex items-center gap-3 mb-3"><div className="w-3 h-3 rounded-full flex-shrink-0" style={{background:col}}></div><span className="text-xs text-slate-300 flex-1">{label}</span><span className="font-mono text-xs" style={{color:col}}>{c}</span></div>);})}
-                <div className="mt-4 pt-4 border-t border-white/5"><div className="text-[10px] text-slate-500 font-mono">TOTAL REPORTS</div><div className="text-3xl font-bold">{reports.length}</div></div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeNav==='alerts' && (
-          <div className="flex flex-col gap-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold">Enforcement Ops</h2>
-              <button onClick={()=>setAlerts(p=>p.map(a=>({...a,read:true})))} className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-4 py-2 rounded-lg hover:bg-green-500/20 transition-colors">Mark All Read</button>
-            </div>
-            {alerts.map(alert=>(
-              <div key={alert.id} onClick={()=>setAlerts(p=>p.map(a=>a.id===alert.id?{...a,read:true}:a))}
-                className={`p-5 glass border rounded-2xl cursor-pointer transition-all ${alert.read?'border-white/5 opacity-60':'border-white/10'}`}>
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${alert.type==='CRITICAL'?'bg-red-500/15':alert.type==='WARNING'?'bg-yellow-500/15':'bg-blue-500/15'}`}>
-                      <LucideIcon name={alert.type==='INFO'?'info':'alert-triangle'} className="w-4 h-4" color={alert.type==='CRITICAL'?'#ef4444':alert.type==='WARNING'?'#eab308':'#3b82f6'}/>
                     </div>
+                );
+            case 'preprocess':
+                return (
+                    <div className="relative w-full h-full bg-black rounded-2xl overflow-hidden border border-white/5 p-4">
+                        <div className="flex flex-col h-full gap-4">
+                            <div className="flex-1 flex gap-4">
+                                <div className="flex-1 bg-white/5 rounded-xl flex flex-col items-center justify-center relative group">
+                                    <span className="absolute top-2 left-2 text-[8px] font-mono text-slate-500">RAW</span>
+                                    <LucideIcon name="image" className="w-8 h-8 text-slate-600 grayscale" />
+                                </div>
+                                <div className="w-8 flex items-center justify-center">
+                                    <LucideIcon name="arrow-right" className="text-blue-500" />
+                                </div>
+                                <div className="flex-1 bg-blue-500/10 rounded-xl flex flex-col items-center justify-center relative overflow-hidden">
+                                    <span className="absolute top-2 left-2 text-[8px] font-mono text-blue-500">NDVI</span>
+                                    <div className="w-full h-full bg-gradient-to-br from-green-900/40 to-blue-900/40 opacity-60"></div>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <LucideIcon name="zap" className="w-8 h-8 text-blue-400 animate-pulse" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="h-12 bg-white/5 rounded-xl flex items-center px-4 gap-4">
+                                <div className="text-[10px] font-mono text-blue-400">CORRECTION ENGINE</div>
+                                <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-full bg-blue-500 shimmer-bar" style={{width:'85%'}}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'detect':
+                return (
+                    <div className="relative w-full h-full bg-black rounded-2xl overflow-hidden border border-white/5">
+                        <div className="absolute inset-0 flex">
+                            <div className="w-1/2 h-full bg-white/5 border-r border-white/10 relative">
+                                <span className="absolute top-2 left-2 text-[8px] font-mono text-slate-500">MAY 2023</span>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-20 h-20 bg-green-500/20 rounded-full blur-2xl"></div>
+                                </div>
+                            </div>
+                            <div className="w-1/2 h-full bg-yellow-500/5 relative">
+                                <span className="absolute top-2 left-2 text-[8px] font-mono text-yellow-500">MAY 2024</span>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-16 h-16 bg-red-500/30 rounded-full blur-xl animate-pulse"></div>
+                                    <div className="w-12 h-12 border-2 border-yellow-500/50 rounded-lg flex items-center justify-center">
+                                        <LucideIcon name="focus" className="w-6 h-6 text-yellow-500" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-px bg-yellow-500/30"></div>
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-full bg-yellow-500/30"></div>
+                        <div className="absolute bottom-4 right-4 text-[10px] font-mono text-yellow-500 bg-black/80 px-2 py-1 rounded border border-yellow-500/30">ΔNDVI: -0.42 (CRITICAL)</div>
+                    </div>
+                );
+            case 'classify':
+                return (
+                    <div className="relative w-full h-full bg-black rounded-2xl overflow-hidden border border-white/5 p-6 flex flex-col gap-4">
+                        <div className="flex justify-between items-center">
+                            <div className="text-xs font-mono text-red-500">VIOLATION DETECTED</div>
+                            <LucideIcon name="alert-triangle" className="text-red-500 animate-bounce" />
+                        </div>
+                        <div className="flex-1 bg-red-500/5 rounded-xl border border-red-500/20 p-4 flex flex-col gap-3">
+                            <div className="flex justify-between text-[10px] font-mono">
+                                <span className="text-slate-500">CLASSIFICATION</span>
+                                <span className="text-red-400 font-bold">ILLEGAL MINING (92%)</span>
+                            </div>
+                            <div className="flex justify-between text-[10px] font-mono">
+                                <span className="text-slate-500">LEGAL STATUS</span>
+                                <span className="text-red-400 font-bold">PROTECTED ZONE C</span>
+                            </div>
+                            <div className="flex justify-between text-[10px] font-mono">
+                                <span className="text-slate-500">THREAT LEVEL</span>
+                                <span className="text-red-400 font-bold">CRITICAL</span>
+                            </div>
+                            <div className="mt-auto h-8 bg-red-500/20 rounded flex items-center justify-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-red-500 animate-ping"></div>
+                                <span className="text-[10px] font-bold text-red-400">ENFORCEMENT ALERT DISPATCHED</span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'dossier':
+                return (
+                    <div className="relative w-full h-full bg-black rounded-2xl overflow-hidden border border-white/5 p-6 flex flex-col items-center justify-center gap-6">
+                        <div className="relative">
+                            <div className="w-24 h-32 bg-white/5 border border-white/20 rounded-lg flex flex-col p-3 gap-2">
+                                <div className="w-full h-1 bg-white/20 rounded"></div>
+                                <div className="w-3/4 h-1 bg-white/10 rounded"></div>
+                                <div className="w-full h-12 bg-white/5 rounded"></div>
+                                <div className="w-full h-1 bg-white/10 rounded"></div>
+                                <div className="w-1/2 h-1 bg-white/10 rounded"></div>
+                            </div>
+                            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/40">
+                                <LucideIcon name="check" className="text-black w-5 h-5" />
+                            </div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-xs font-bold mb-1">DOSSIER #AR-2024-882</div>
+                            <div className="text-[10px] font-mono text-slate-500">READY FOR DOWNLOAD</div>
+                        </div>
+                        <button className="w-full py-2 bg-purple-500/10 border border-purple-500/30 rounded-lg text-[10px] font-bold text-purple-400 hover:bg-purple-500/20 transition-all">
+                            EXPORT AS EVIDENCE.PDF
+                        </button>
+                    </div>
+                );
+            default: return null;
+        }
+    };
+
+    if (booting) {
+        return (
+            <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center p-6">
+                <div className="w-full max-w-md">
+                    <div className="font-mono text-green-500 text-sm space-y-2">
+                        {bootLines.map((line, i) => <div key={i}>{line}</div>)}
+                        {bootLines.length > 0 && bootLines.length < BOOT_SEQUENCE.length && (
+                            <div className="terminal-cursor text-green-500">&nbsp;</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-[#030303] pt-20 pb-10 px-4">
+            {/* Header */}
+            <div className="max-w-6xl mx-auto mb-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 inline-block ${alert.type==='CRITICAL'?'bg-red-500/20 text-red-500':alert.type==='WARNING'?'bg-yellow-500/20 text-yellow-500':'bg-blue-500/20 text-blue-400'}`}>{alert.type}</span>
-                      <p className={`text-sm font-medium ${!alert.read?'text-white':'text-slate-400'}`}>{alert.msg}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span className="text-green-500 font-mono text-xs tracking-widest uppercase">Pipeline Simulation — Interactive Walkthrough</span>
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-bold">How A.R.A.N.Y.A Works</h1>
+                        <p className="text-slate-500 text-sm mt-1">Step through the full end-to-end intelligence pipeline</p>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2"><span className="text-[10px] font-mono text-slate-600">{alert.time}</span>{!alert.read&&<div className="w-2 h-2 bg-green-500 rounded-full"></div>}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {selectedReport && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
-          onClick={e=>{if(e.target===e.currentTarget)setSelectedReport(null);}}>
-          <div className="bg-zinc-900 border border-white/10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-8 shadow-2xl relative">
-            <button onClick={()=>setSelectedReport(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full"><LucideIcon name="x" className="w-6 h-6"/></button>
-            <div className="flex flex-col md:flex-row gap-8">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-4 flex-wrap">
-                  <span className="bg-green-500 text-black px-2 py-0.5 rounded text-[10px] font-bold">GOVERNMENT INTEL</span>
-                  <span className="text-slate-500 font-mono text-xs">{selectedReport.id}</span>
-                  {selectedReport.violationType&&<span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">{selectedReport.violationType}</span>}
-                </div>
-                <h2 className="text-3xl font-bold mb-2 text-white">{selectedReport.topic}</h2>
-                <div className="flex items-center gap-2 text-slate-400 text-sm mb-8"><LucideIcon name="map-pin" className="w-4 h-4"/> {selectedReport.coords}{selectedReport.zone&&` • ${selectedReport.zone}`}</div>
-                <div className="grid grid-cols-2 gap-4 mb-8">
-                  {[{label:'Vegetation Loss',val:selectedReport.loss,col:'text-red-500'},{label:'Risk Score',val:selectedReport.risk+'%',col:'text-red-500'},{label:'Reported By',val:selectedReport.citizen,col:'text-blue-400'},{label:'Date Filed',val:selectedReport.date,col:'text-green-400'}].map(({label,val,col})=>(
-                    <div key={label} className="p-4 bg-black/30 rounded-2xl border border-white/5"><span className="text-[10px] font-mono text-slate-500 block uppercase mb-1">{label}</span><div className={`text-2xl font-bold ${col}`}>{val}</div></div>
-                  ))}
-                </div>
-                <div className="space-y-4 mb-6">
-                  <h4 className="font-bold border-b border-white/5 pb-2 text-white">Intelligence Summary</h4>
-                  <p className="text-slate-400 text-sm italic">"{selectedReport.description}"</p>
-                  <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl text-xs text-blue-200 leading-relaxed"><strong>AI ASSESSMENT:</strong> Anomalous topographical excavation detected. High-frequency truck traffic identified between 22:00–04:00 IST. Potential violation of Forest Conservation Act §4(1) and NGT OA 362/2022.</div>
-                </div>
-                <div className="mb-6">
-                  <h4 className="text-xs font-mono text-slate-500 uppercase mb-3">Update Status</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {STATUSES.map(s=>(
-                      <button key={s} onClick={()=>updateStatus(selectedReport.id,s)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border"
-                        style={{background:selectedReport.status===s?'#22c55e':'rgba(255,255,255,0.04)',color:selectedReport.status===s?'#000':'#94a3b8',borderColor:selectedReport.status===s?'#22c55e':'rgba(255,255,255,0.08)'}}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <button onClick={()=>exportDossier(selectedReport)} className="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-green-500 transition-colors flex items-center justify-center gap-2"><LucideIcon name="download" className="w-4 h-4"/> Export Dossier</button>
-                  <button onClick={()=>deleteReport(selectedReport.id)} className="glass border border-red-500/20 py-3 px-5 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors"><LucideIcon name="trash" className="w-4 h-4 text-red-400"/></button>
-                </div>
-              </div>
-              <div className="w-full md:w-[280px] space-y-4">
-                <div className="bg-zinc-800/50 p-4 rounded-2xl space-y-3">
-                  <h4 className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Enforcement Status</h4>
-                  {[{label:'Report Received',done:true,date:selectedReport.date},{label:'Satellite Confirmed',done:selectedReport.risk>40,date:'Automated'},{label:'Under Review',done:['Under Review','Under Investigation','Resolved','Closed'].includes(selectedReport.status)},{label:'Investigation Started',done:['Under Investigation','Resolved','Closed'].includes(selectedReport.status)},{label:'Resolved',done:['Resolved','Closed'].includes(selectedReport.status)}].map((step,i)=>(
-                    <div key={i} className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full border-4 border-zinc-900 flex items-center justify-center flex-shrink-0 ${step.done?'bg-green-500':'bg-zinc-700'}`}>
-                        {step.done&&<LucideIcon name="check" className="w-3 h-3 text-white"/>}
-                      </div>
-                      <div><div className={`text-sm font-bold ${step.done?'text-white':'text-slate-600'}`}>{step.label}</div>{step.date&&<div className="text-[10px] text-slate-500">{step.date}</div>}</div>
+                    <div className="flex items-center gap-3">
+                        <button onClick={() => { setAutoplay(p => !p); }}
+                            className={`flex items-center gap-2 text-xs font-mono px-4 py-2 rounded-xl border transition-all ${autoplay?'bg-green-500/10 border-green-500/30 text-green-400':'bg-white/5 border-white/10 text-slate-400'}`}>
+                            <LucideIcon name={autoplay?'pause':'play'} className="w-3 h-3" />
+                            {autoplay?'Auto':'Manual'}
+                        </button>
+                        <button onClick={onComplete}
+                            className="flex items-center gap-2 bg-white text-black text-xs font-bold px-5 py-2 rounded-xl hover:bg-green-500 transition-colors">
+                            Enter System <LucideIcon name="arrow-right" className="w-3 h-3" />
+                        </button>
                     </div>
-                  ))}
                 </div>
-              </div>
             </div>
-          </div>
+
+            {/* Flow diagram */}
+            <div className="max-w-6xl mx-auto mb-6 glass rounded-2xl border border-white/5 overflow-hidden">
+                <FlowDiagram activeStage={stage} stages={PIPELINE_STAGES} onSelect={i => { setStage(i); setAutoplay(false); }} />
+                <div className="px-4 pb-3">
+                    <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-500 rounded-full transition-all duration-700" style={{width:`${((stage+1)/PIPELINE_STAGES.length)*100}%`}}></div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main content */}
+            <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
+                <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-5 sim-stage" key={stage}>
+                    <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{background:`${stageData.color}15`, border:`2px solid ${stageData.color}40`}}>
+                            <LucideIcon name={stageData.icon} className="w-6 h-6" color={stageData.color} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="font-mono text-xs font-bold" style={{color:stageData.color}}>STAGE {stageData.step}</span>
+                                <span className="w-px h-3 bg-white/20"></span>
+                                <span className="text-slate-500 text-xs font-mono">of {PIPELINE_STAGES.length}</span>
+                            </div>
+                            <h2 className="text-xl font-bold text-white">{stageData.title}</h2>
+                            <p className="text-xs font-mono text-slate-500 mt-0.5">{stageData.subtitle}</p>
+                        </div>
+                    </div>
+
+                    <p className="text-sm text-slate-300 leading-relaxed">{stageData.description}</p>
+
+                    {stageData.dataPoints && (
+                        <div className="space-y-2">
+                            {stageData.dataPoints.map(d => (
+                                <div key={d.label} className="flex items-center gap-3 py-2 border-b border-white/5">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
+                                    <span className="text-xs text-slate-300 flex-1">{d.label}</span>
+                                    <span className="text-xs font-mono text-slate-500">{d.val}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded font-bold" style={{background:d.status==='LIVE'?'rgba(34,197,94,0.15)':'rgba(59,130,246,0.15)', color:d.status==='LIVE'?'#22c55e':'#60a5fa'}}>{d.status}</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {stageData.metrics && (
+                        <div className="space-y-3">
+                            {stageData.metrics.map(m => (
+                                <div key={m.label}>
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span className="text-slate-400">{m.label}</span>
+                                        <span className="font-mono" style={{color:m.col}}>{m.pct}%</span>
+                                    </div>
+                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                        <div className="h-full rounded-full" style={{width:`${m.pct}%`, background:m.col, transition:'width 1s ease'}}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex gap-3 mt-auto pt-4 border-t border-white/5">
+                        <button onClick={goPrev} disabled={stage===0}
+                            className="flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-xl border border-white/10 text-slate-400 hover:bg-white/5 disabled:opacity-30 transition-all">
+                            <LucideIcon name="arrow-left" className="w-3 h-3" /> Prev
+                        </button>
+                        <button onClick={goNext}
+                            className="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl transition-all text-black"
+                            style={{background:stageData.color}}>
+                            {stage < PIPELINE_STAGES.length-1 ? <><span>Next Stage</span><LucideIcon name="arrow-right" className="w-3 h-3" /></> : <><span>Enter System</span><LucideIcon name="log-in" className="w-3 h-3" /></>}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="glass rounded-3xl border border-white/5 p-6 flex flex-col gap-4 overflow-hidden sim-stage" key={`vis-${stage}`}>
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-mono text-slate-500 uppercase tracking-widest">Live Simulation</span>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                            <span className="text-[10px] font-mono text-green-500">RUNNING</span>
+                        </div>
+                    </div>
+                    <div className="flex-1">
+                        {renderVisual()}
+                    </div>
+                    <div className="p-3 rounded-xl border text-xs font-mono" style={{background:`${stageData.color}08`, borderColor:`${stageData.color}25`, color:stageData.color}}>
+                        {stage===0 && '📡 Cartosat-2E + Sentinel-2 streams fused at 10m resolution, 5-day revisit cycle'}
+                        {stage===1 && '🔬 NDVI range [−0.1 → 0.9] computed per pixel — baseline Δ flagged if |ΔNDVI| > 0.15'}
+                        {stage===2 && '🗺 Vegetation → Mining Scar transition in Protected Zone = immediate HIGH PENALTY state'}
+                        {stage===3 && '📊 P(Illegal | Zₜ, ΔZₜ, proximity, rainfall) — Gradient Boosted Scoring Engine'}
+                        {stage===4 && '⚖ Forest Conservation Act §4(1) — Violation auto-tagged, dossier auto-generated'}
+                    </div>
+                </div>
+            </div>
         </div>
-      )}
-    </div>
-  );
+    );
 };
 
-// ── CITIZEN PORTAL ────────────────────────────────────────────────
-const CitizenPortal = ({ reports, setReports }) => {
-  const notify = useNotify();
-  const [tab, setTab] = useState('report');
-  const [myIds, setMyIds] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [expanded, setExpanded] = useState(null);
-  const [gpsLoading, setGpsLoading] = useState(false);
-  const [form, setForm] = useState({description:'',topic:'',violationType:'',zone:'',lat:'',lng:''});
-
-  const captureGPS = () => {
-    setGpsLoading(true);
-    const done = (lat,lng) => { setForm(f=>({...f,lat,lng})); setGpsLoading(false); notify('Location captured!','success'); };
-    if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>done(p.coords.latitude.toFixed(4),p.coords.longitude.toFixed(4)),()=>done((26.5+Math.random()*3).toFixed(4),(75.5+Math.random()*2.5).toFixed(4)));
-    else done((26.5+Math.random()*3).toFixed(4),(75.5+Math.random()*2.5).toFixed(4));
-  };
-
-  const handleReport = e => {
-    e.preventDefault();
-    if(!form.description||!form.topic||!form.violationType||!form.zone){notify('Please fill all required fields','error');return;}
-    setSubmitting(true);
-    setTimeout(()=>{
-      const rep={id:genId(),topic:form.topic,coords:form.lat&&form.lng?`${form.lat}° N, ${form.lng}° E`:'28.6139° N, 77.2090° E',lat:parseFloat(form.lat)||28.6139,lng:parseFloat(form.lng)||77.2090,status:'Pending Review',risk:Math.floor(Math.random()*40)+30,loss:`${(Math.random()*10+1).toFixed(1)}%`,date:new Date().toISOString().split('T')[0],citizen:'Anonymous Citizen',description:form.description,zone:form.zone,violationType:form.violationType};
-      setReports(p=>[rep,...p]);setMyIds(p=>[rep.id,...p]);setSubmitting(false);setSubmitted(true);
-      setForm({description:'',topic:'',violationType:'',zone:'',lat:'',lng:''});
-      notify('Report submitted successfully!','success');
-      setTimeout(()=>{setSubmitted(false);setTab('track');},2500);
-    },1800);
-  };
-
-  const myReports = reports.filter(r=>myIds.includes(r.id));
-  const stepsFor = rep => [
-    {label:'Submitted',done:true,date:rep.date},{label:'Viewed by Authority',done:['Under Review','Under Investigation','Resolved','Closed'].includes(rep.status)},{label:'AI Analysis Complete',done:['Under Review','Under Investigation','Resolved','Closed'].includes(rep.status),date:'Automated'},{label:'Investigation Started',done:['Under Investigation','Resolved','Closed'].includes(rep.status)},{label:'Resolved',done:['Resolved','Closed'].includes(rep.status)}
-  ];
-
-  return (
-    <div className="min-h-screen bg-slate-50 pt-24 pb-12 px-6">
-      <div className="max-w-4xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Citizen Empowerment Portal</h1><p className="text-slate-500">Transparent environmental governance at your fingertips.</p></div>
-          <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
-            {[['report','New Complaint'],['track','Track Status'],['public','All Reports']].map(([id,label])=>(
-              <button key={id} onClick={()=>setTab(id)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${tab===id?'bg-blue-600 text-white shadow-md':'text-slate-600'}`}>{label}</button>
-            ))}
-          </div>
-        </header>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="md:col-span-2 space-y-6">
-            {tab==='report' && (
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
-                {submitted ? (
-                  <div className="text-center py-10">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><LucideIcon name="check-circle-2" className="w-8 h-8 text-green-500"/></div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">Report Submitted Successfully</h3>
-                    <p className="text-slate-500 text-sm">Redirecting to tracking…</p>
-                  </div>
-                ) : (
-                  <form onSubmit={handleReport} className="space-y-5">
-                    <h3 className="text-xl font-bold text-slate-800">Report an Observation</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Title *</label><input required value={form.topic} onChange={e=>setForm(f=>({...f,topic:e.target.value}))} placeholder="E.g., Illegal tree felling" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/></div>
-                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Violation Type *</label><select required value={form.violationType} onChange={e=>setForm(f=>({...f,violationType:e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-sm outline-none cursor-pointer"><option value="">Select…</option>{VIOLATION_TYPES.map(v=><option key={v}>{v}</option>)}</select></div>
-                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Forest Zone *</label><select required value={form.zone} onChange={e=>setForm(f=>({...f,zone:e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-900 text-sm outline-none cursor-pointer"><option value="">Select zone…</option>{ZONES.map(z=><option key={z}>{z}</option>)}</select></div>
-                      <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Location</label><div onClick={captureGPS} className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-3 cursor-pointer hover:bg-slate-100"><LucideIcon name="map-pin" className="w-4 h-4 text-blue-600"/><span className="text-xs font-medium text-slate-400 italic">{gpsLoading?'Detecting…':form.lat?`${form.lat}° N`:'Auto-detect GPS…'}</span></div></div>
+// ── LOGIN SCREEN ─────────────────────────────────────────────────────────────
+const LoginScreen = ({ onLogin }) => {
+    return (
+        <div className="min-h-screen bg-black flex items-center justify-center p-6">
+            <div className="grid-bg absolute inset-0 opacity-10"></div>
+            <div className="max-w-md w-full relative z-10">
+                <div className="text-center mb-10">
+                    <div className="w-16 h-16 bg-green-500 rounded-2xl mx-auto flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                        <LucideIcon name="shield" className="text-black w-8 h-8" />
                     </div>
-                    <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Description *</label><textarea required value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder="What are you seeing?" className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-slate-900 h-32 focus:ring-2 focus:ring-blue-500 outline-none text-sm resize-none"></textarea></div>
-                    <button type="submit" disabled={submitting} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                      {submitting?<><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>Submitting…</>:'Finalize & Send Report'}
+                    <h1 className="text-3xl font-bold mb-2">Access Terminal</h1>
+                    <p className="text-slate-500 text-sm">Select your authorization level to continue</p>
+                </div>
+                
+                <div className="space-y-4">
+                    <button onClick={() => onLogin('gov')} className="w-full group relative p-6 glass rounded-2xl border-white/10 hover:border-green-500/50 transition-all text-left">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-mono text-green-500">LEVEL 04 AUTH</span>
+                            <LucideIcon name="chevron-right" className="text-slate-700 group-hover:text-green-500 transition-colors" />
+                        </div>
+                        <h3 className="text-xl font-bold">Government Official</h3>
+                        <p className="text-slate-500 text-xs mt-1">Full access to enforcement dossiers and investigation tools.</p>
                     </button>
-                  </form>
-                )}
-              </div>
-            )}
-            {tab==='track' && (
-              <div className="space-y-4">
-                {myReports.length===0?(<div className="bg-white p-12 rounded-3xl border border-slate-200 text-center"><p className="text-slate-400 text-sm mb-4">No reports submitted yet.</p><button onClick={()=>setTab('report')} className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">Submit a Report</button></div>):myReports.map(rep=>(
-                  <div key={rep.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                    <div className="flex justify-between items-start mb-4">
-                      <div><span className="text-[10px] font-mono text-slate-400">{rep.id}</span><h3 className="font-bold text-lg text-slate-800">{rep.topic}</h3><p className="text-xs text-slate-400">{rep.zone} • {rep.date}</p></div>
-                      <div className="flex items-center gap-2"><span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">{rep.status}</span><button onClick={()=>setExpanded(expanded===rep.id?null:rep.id)} className="text-xs text-slate-400 hover:text-slate-600">{expanded===rep.id?'Hide':'Details'}</button></div>
-                    </div>
-                    {expanded===rep.id && (<div className="relative pt-6"><div className="absolute top-0 left-4 w-0.5 h-full bg-slate-100"></div>{stepsFor(rep).map((step,idx)=>(<div key={idx} className="flex gap-4 mb-4 relative z-10"><div className={`w-8 h-8 rounded-full border-4 border-white flex items-center justify-center ${step.done?'bg-green-500':'bg-slate-200'}`}>{step.done&&<LucideIcon name="check-circle-2" className="w-4 h-4 text-white"/>}</div><div><div className={`text-sm font-bold ${step.done?'text-slate-800':'text-slate-400'}`}>{step.label}</div>{step.date&&<div className="text-[10px] text-slate-400">{step.date}</div>}</div></div>))}</div>)}
-                  </div>
-                ))}
-              </div>
-            )}
-            {tab==='public' && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-slate-800">All Reported Incidents ({reports.length})</h3>
-                {reports.map(rep=>(
-                  <div key={rep.id} className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
-                    <div className="flex justify-between items-start mb-2">
-                      <div><span className="text-[10px] font-mono text-slate-400">{rep.id}</span><h3 className="font-bold text-lg text-slate-800">{rep.topic}</h3><p className="text-xs text-slate-400">{rep.zone||'—'} • {rep.violationType||'—'} • {rep.date}</p></div>
-                      <div className="flex items-center gap-2"><span className="text-xs font-bold px-2 py-1 rounded-full" style={{background:rep.risk>=75?'#fee2e2':rep.risk>=50?'#fef9c3':'#dcfce7',color:rep.risk>=75?'#b91c1c':rep.risk>=50?'#a16207':'#15803d'}}>{rep.risk}% risk</span><span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full">{rep.status}</span></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="space-y-6 text-slate-800">
-            <div className="bg-white p-6 rounded-3xl border border-slate-200 space-y-4"><h4 className="text-sm font-bold">Why Transparency Matters</h4><p className="text-xs text-slate-500 leading-relaxed">Every observation submitted is backed by satellite auditing via ARANYA's detection core. Your report becomes official evidence in NGT proceedings.</p><div className="p-4 bg-slate-50 rounded-2xl flex items-center gap-3"><LucideIcon name="shield" className="w-8 h-8 text-blue-600"/><div className="text-xs text-slate-700 font-medium">Classed as Official Evidence</div></div></div>
-            <div className="bg-slate-900 p-6 rounded-3xl text-white space-y-4 shadow-xl">
-              <h4 className="text-sm font-bold">Community Impact</h4>
-              <div className="flex items-center gap-4"><div className="text-2xl font-black text-green-500">{reports.filter(r=>['Resolved','Closed'].includes(r.status)).length||'0'}</div><div className="text-[10px] text-slate-400 leading-tight uppercase font-mono">Cases Resolved This Quarter</div></div>
-              <div className="flex items-center gap-4"><div className="text-2xl font-black text-blue-400">{reports.length}</div><div className="text-[10px] text-slate-400 leading-tight uppercase font-mono">Total Reports Filed</div></div>
-              <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden"><div className="bg-green-500 h-full transition-all duration-700" style={{width:`${reports.length>0?Math.round(reports.filter(r=>['Resolved','Closed'].includes(r.status)).length/reports.length*100):0}%`}}></div></div>
+                    
+                    <button onClick={() => onLogin('citizen')} className="w-full group relative p-6 glass rounded-2xl border-white/10 hover:border-blue-500/50 transition-all text-left">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-mono text-blue-400">PUBLIC ACCESS</span>
+                            <LucideIcon name="chevron-right" className="text-slate-700 group-hover:text-blue-400 transition-colors" />
+                        </div>
+                        <h3 className="text-xl font-bold">Citizen Portal</h3>
+                        <p className="text-slate-500 text-xs mt-1">Report violations and track environmental health in your area.</p>
+                    </button>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
-// ── APP ───────────────────────────────────────────────────────────
+// ── GOV DASHBOARD ─────────────────────────────────────────────────────────────
+const GovDashboard = ({ reports, setReports, onLogout }) => {
+    const [selectedReport, setSelectedReport] = useState(null);
+    const [activeNav, setActiveNav] = useState('overview');
+    const [alerts, setAlerts] = useState([
+        { id:1, type:'CRITICAL', msg:'High-confidence mining scar detected in Aravalli Zone C', time:'12m ago', read:false },
+        { id:2, type:'WARNING', msg:'Unusual truck movement pattern near Haryana Reserve', time:'1h ago', read:false },
+        { id:3, type:'INFO', msg:'Weekly satellite composite for Delhi Ridge updated', time:'4h ago', read:true }
+    ]);
+
+    const updateStatus = (id, status) => {
+        setReports(p => p.map(r => r.id === id ? { ...r, status } : r));
+        setSelectedReport(p => p ? { ...p, status } : null);
+    };
+
+    const deleteReport = id => {
+        setReports(p => p.filter(r => r.id !== id));
+        setSelectedReport(null);
+    };
+
+    const exportDossier = r => {
+        const data = `ARANYA ENFORCEMENT DOSSIER\nID: ${r.id}\nTOPIC: ${r.topic}\nCOORDS: ${r.coords}\nVIOLATION: ${r.violationType}\nRISK: ${r.risk}%\nDATE: ${r.date}\n\nSUMMARY: ${r.description}`;
+        const blob = new Blob([data], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `DOSSIER_${r.id}.txt`; a.click();
+    };
+
+    return (
+        <div className="min-h-screen bg-[#080808] pt-20 flex">
+            {/* Sidebar */}
+            <div className="w-64 border-r border-white/5 p-6 flex flex-col gap-8 hidden md:flex">
+                <div className="space-y-2">
+                    {['overview', 'intel', 'alerts', 'archive'].map(n => (
+                        <button key={n} onClick={() => setActiveNav(n)} className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activeNav === n ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}>
+                            <LucideIcon name={n==='overview'?'layout-dashboard':n==='intel'?'satellite':n==='alerts'?'bell':'archive'} className="w-4 h-4" />
+                            {n.charAt(0).toUpperCase() + n.slice(1)}
+                        </button>
+                    ))}
+                </div>
+                <div className="mt-auto p-4 rounded-2xl bg-green-500/5 border border-green-500/10">
+                    <div className="text-[10px] font-mono text-green-500 mb-1 uppercase tracking-widest">System Health</div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        <span className="text-xs font-bold">CORE ONLINE</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="flex-1 p-6 md:p-10 overflow-y-auto">
+                {activeNav === 'overview' && (
+                    <div className="flex flex-col gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {[{l:'Active Investigations',v:reports.length,c:'text-green-500'},{l:'Critical Alerts',v:alerts.filter(a=>a.type==='CRITICAL').length,c:'text-red-500'},{l:'Protected Area Coverage',v:'98.4%',c:'text-blue-400'}].map(s=>(
+                                <div key={s.l} className="glass p-6 rounded-2xl border-white/5">
+                                    <span className="text-xs font-mono text-slate-500 uppercase">{s.l}</span>
+                                    <div className={`text-3xl font-bold mt-2 ${s.c}`}>{s.v}</div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                            <h2 className="text-xl font-bold">Pending Intelligence Dossiers</h2>
+                            <div className="grid gap-4">
+                                {reports.map(r => (
+                                    <div key={r.id} onClick={() => setSelectedReport(r)} className="glass p-5 rounded-2xl border-white/5 hover:border-white/15 transition-all cursor-pointer flex flex-col md:flex-row justify-between gap-4 group">
+                                        <div className="flex gap-4">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${r.risk > 80 ? 'bg-red-500/10' : 'bg-yellow-500/10'}`}>
+                                                <LucideIcon name="alert-triangle" className={r.risk > 80 ? 'text-red-500' : 'text-yellow-500'} />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className="text-[10px] font-mono text-slate-500">{r.id}</span>
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white/5 text-slate-400">{r.status}</span>
+                                                </div>
+                                                <h3 className="font-bold text-white group-hover:text-green-500 transition-colors">{r.topic}</h3>
+                                                <p className="text-xs text-slate-500 mt-0.5">{r.coords} • {r.zone}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <div className="text-right">
+                                                <div className="text-[10px] font-mono text-slate-500 uppercase">Risk Confidence</div>
+                                                <div className={`font-bold ${r.risk > 80 ? 'text-red-500' : 'text-yellow-500'}`}>{r.risk}%</div>
+                                            </div>
+                                            <LucideIcon name="chevron-right" className="text-slate-700 group-hover:text-white transition-colors" />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeNav==='alerts' && (
+                    <div className="flex flex-col gap-6">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-xl font-bold">Enforcement Ops</h2>
+                            <button onClick={()=>setAlerts(p=>p.map(a=>({...a,read:true})))} className="text-xs bg-green-500/10 text-green-500 border border-green-500/20 px-4 py-2 rounded-lg hover:bg-green-500/20 transition-colors">Mark All Read</button>
+                        </div>
+                        {alerts.map(alert=>(
+                            <div key={alert.id} onClick={()=>setAlerts(p=>p.map(a=>a.id===alert.id?{...a,read:true}:a))}
+                                className={`p-5 glass border rounded-2xl cursor-pointer transition-all ${alert.read?'border-white/5 opacity-60':'border-white/10 hover:border-white/15'}`}>
+                                <div className="flex justify-between items-start">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${alert.type==='CRITICAL'?'bg-red-500/15':alert.type==='WARNING'?'bg-yellow-500/15':'bg-blue-500/15'}`}>
+                                            <LucideIcon name={alert.type==='INFO'?'info':'alert-triangle'} className="w-4 h-4" color={alert.type==='CRITICAL'?'#ef4444':alert.type==='WARNING'?'#eab308':'#3b82f6'}/>
+                                        </div>
+                                        <div>
+                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 inline-block ${alert.type==='CRITICAL'?'bg-red-500/20 text-red-500':alert.type==='WARNING'?'bg-yellow-500/20 text-yellow-500':'bg-blue-500/20 text-blue-400'}`}>{alert.type}</span>
+                                            <p className={`text-sm font-medium ${!alert.read?'text-white':'text-slate-400'}`}>{alert.msg}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2"><span className="text-[10px] font-mono text-slate-600">{alert.time}</span>{!alert.read&&<div className="w-2 h-2 bg-green-500 rounded-full"></div>}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <AnimatePresence>
+                {selectedReport && (
+                    <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-6"
+                        onClick={e=>{if(e.target===e.currentTarget)setSelectedReport(null);}}>
+                        <motion.div initial={{scale:0.9,y:20}} animate={{scale:1,y:0}}
+                            className="bg-zinc-900 border border-white/10 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl p-8 shadow-2xl relative">
+                            <button onClick={()=>setSelectedReport(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition-colors"><LucideIcon name="x" className="w-6 h-6"/></button>
+                            <div className="flex flex-col md:flex-row gap-8">
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-4 flex-wrap">
+                                        <span className="bg-green-500 text-black px-2 py-0.5 rounded text-[10px] font-bold">GOVERNMENT INTEL</span>
+                                        <span className="text-slate-500 font-mono text-xs">{selectedReport.id}</span>
+                                        {selectedReport.violationType&&<span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">{selectedReport.violationType}</span>}
+                                    </div>
+                                    <h2 className="text-3xl font-bold mb-2 text-white">{selectedReport.topic}</h2>
+                                    <div className="flex items-center gap-2 text-slate-400 text-sm mb-8"><LucideIcon name="map-pin" className="w-4 h-4"/> {selectedReport.coords}{selectedReport.zone&&` • ${selectedReport.zone}`}</div>
+                                    <div className="grid grid-cols-2 gap-4 mb-8">
+                                        {[{label:'Vegetation Loss',val:selectedReport.loss,col:'text-red-500'},{label:'Risk Confidence',val:selectedReport.risk+'%',col:'text-red-500'},{label:'Reported By',val:selectedReport.citizen,col:'text-blue-400'},{label:'Date Filed',val:selectedReport.date,col:'text-green-400'}].map(({label,val,col})=>(
+                                            <div key={label} className="p-4 bg-black/30 rounded-2xl border border-white/5"><span className="text-[10px] font-mono text-slate-500 block uppercase mb-1">{label}</span><div className={`text-2xl font-bold ${col}`}>{val}</div></div>
+                                        ))}
+                                    </div>
+                                    <div className="space-y-4 mb-6">
+                                        <h4 className="font-bold border-b border-white/5 pb-2 text-white">Intelligence Summary</h4>
+                                        <p className="text-slate-400 text-sm italic">"{selectedReport.description}"</p>
+                                        <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl text-xs text-blue-200 leading-relaxed"><strong>AI ASSESSMENT:</strong> Anomalous topographical excavation detected spanning 1,200 sq. meters. High-frequency truck traffic identified between 22:00–04:00. This violates Section 4(1) of the Forest Conservation Act.</div>
+                                    </div>
+                                    <div className="mb-6">
+                                        <h4 className="text-xs font-mono text-slate-500 uppercase mb-3">Update Status</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {STATUSES.map(s=>(
+                                                <button key={s} onClick={()=>updateStatus(selectedReport.id,s)}
+                                                    className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border"
+                                                    style={{background:selectedReport.status===s?'#22c55e':'rgba(255,255,255,0.04)',color:selectedReport.status===s?'#000':'#94a3b8',borderColor:selectedReport.status===s?'#22c55e':'rgba(255,255,255,0.08)',fontFamily:'Inter,sans-serif'}}>
+                                                    {s}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <button onClick={()=>exportDossier(selectedReport)} className="flex-1 bg-white text-black font-bold py-3 rounded-xl hover:bg-green-500 transition-colors flex items-center justify-center gap-2" style={{fontFamily:'Inter,sans-serif'}}><LucideIcon name="download" className="w-4 h-4"/> Export Dossier</button>
+                                        <button onClick={()=>deleteReport(selectedReport.id)} className="glass border border-red-500/20 py-3 px-5 rounded-xl text-red-400 hover:bg-red-500/10 transition-colors"><LucideIcon name="trash" className="w-4 h-4 text-red-400"/></button>
+                                    </div>
+                                </div>
+                                <div className="w-full md:w-[320px] space-y-4">
+                                    <div className="rounded-2xl overflow-hidden border border-white/10 aspect-square"><img src="https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover"/></div>
+                                    <div className="bg-zinc-800/50 p-4 rounded-2xl space-y-3">
+                                        <h4 className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Enforcement Status</h4>
+                                        {[{label:'Report Received',done:true,date:selectedReport.date},{label:'Satellite Confirmed',done:selectedReport.risk>40,date:'Automated'},{label:'Under Review',done:['Under Review','Under Investigation','Resolved','Closed'].includes(selectedReport.status)},{label:'Investigation Started',done:['Under Investigation','Resolved','Closed'].includes(selectedReport.status)},{label:'Resolved',done:['Resolved','Closed'].includes(selectedReport.status)}].map((step,i)=>(
+                                            <div key={i} className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full border-4 border-zinc-900 flex items-center justify-center flex-shrink-0 ${step.done?'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.3)]':'bg-zinc-700'}`}>
+                                                    {step.done&&<LucideIcon name="check" className="w-3 h-3 text-white"/>}
+                                                </div>
+                                                <div><div className={`text-sm font-bold ${step.done?'text-white':'text-slate-600'}`}>{step.label}</div>{step.date&&<div className="text-[10px] text-slate-500">{step.date}</div>}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+};
+
+// ── CITIZEN PORTAL ────────────────────────────────────────────────────────────
+const CitizenPortal = ({ reports, setReports }) => {
+    const notify = useNotify();
+    const [tab, setTab] = useState('report');
+    const [myIds, setMyIds] = useState([]);
+    const [submitting, setSubmitting] = useState(false);
+    const [submitted, setSubmitted] = useState(false);
+    const [expanded, setExpanded] = useState(null);
+    const [gpsLoading, setGpsLoading] = useState(false);
+    const [form, setForm] = useState({ description:'', topic:'', violationType:'', zone:'', lat:'', lng:'' });
+    
+    const captureGPS = () => {
+        setGpsLoading(true);
+        const done = (lat,lng) => { setForm(f=>({...f,lat,lng})); setGpsLoading(false); notify('Location captured!','success'); };
+        if(navigator.geolocation) navigator.geolocation.getCurrentPosition(p=>done(p.coords.latitude.toFixed(4),p.coords.longitude.toFixed(4)),()=>done((26.5+Math.random()*3).toFixed(4),(75.5+Math.random()*2.5).toFixed(4)));
+        else done((26.5+Math.random()*3).toFixed(4),(75.5+Math.random()*2.5).toFixed(4));
+    };
+
+    const handleReport = e => {
+        e.preventDefault();
+        if(!form.description||!form.topic||!form.violationType||!form.zone){ notify('Please fill all required fields','error'); return; }
+        setSubmitting(true);
+        setTimeout(()=>{
+            const rep = { id:genId(), topic:form.topic, coords:form.lat&&form.lng?`${form.lat}° N, ${form.lng}° E`:'28.6139° N, 77.2090° E', lat:parseFloat(form.lat)||28.6139, lng:parseFloat(form.lng)||77.2090, status:'Pending Review', risk:Math.floor(Math.random()*40)+30, loss:`${(Math.random()*10+1).toFixed(1)}%`, date:new Date().toISOString().split('T')[0], citizen:'Anonymous Citizen', description:form.description, zone:form.zone, violationType:form.violationType };
+            setReports(p=>[rep,...p]); setMyIds(p=>[rep.id,...p]); setSubmitting(false); setSubmitted(true);
+            setForm({description:'',topic:'',violationType:'',zone:'',lat:'',lng:''});
+            notify('Report submitted successfully!','success');
+            setTimeout(()=>{ setSubmitted(false); setTab('track'); },2500);
+        },1800);
+    };
+
+    const myReports = reports.filter(r=>myIds.includes(r.id));
+
+    return (
+        <div className="min-h-screen bg-slate-50 pt-24 pb-12 px-6">
+            <div className="max-w-4xl mx-auto">
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                    <div><h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Citizen Empowerment Portal</h1><p className="text-slate-500">Transparent environmental governance at your fingertips.</p></div>
+                    <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+                        {['report','track'].map(t=>(
+                            <button key={t} onClick={()=>setTab(t)} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${tab===t?'bg-green-500 text-white shadow-md':'text-slate-500 hover:bg-slate-50'}`}>{t==='report'?'New Report':'Track Status'}</button>
+                        ))}
+                    </div>
+                </header>
+
+                {tab==='report' ? (
+                    <div className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
+                        <div className="bg-green-500 p-6 text-white">
+                            <h2 className="text-xl font-bold flex items-center gap-2"><LucideIcon name="plus-circle" /> Submit New Violation Intel</h2>
+                            <p className="text-green-100 text-sm opacity-90">Your report will be processed by ARANYA's AI core within 24 hours.</p>
+                        </div>
+                        <form onSubmit={handleReport} className="p-8 grid md:grid-cols-2 gap-6">
+                            <div className="md:col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Subject / Title</label><input value={form.topic} onChange={e=>setForm(f=>({...f,topic:e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none transition-all text-slate-900" placeholder="e.g. Unauthorized clearing near Ridge Road"/></div>
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Violation Category</label><select value={form.violationType} onChange={e=>setForm(f=>({...f,violationType:e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none text-slate-900"><option value="">Select Category</option>{VIOLATION_TYPES.map(v=><option key={v} value={v}>{v}</option>)}</select></div>
+                            <div><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Impact Zone</label><select value={form.zone} onChange={e=>setForm(f=>({...f,zone:e.target.value}))} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none text-slate-900"><option value="">Select Zone</option>{ZONES.map(z=><option key={z} value={z}>{z}</option>)}</select></div>
+                            <div className="md:col-span-2">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Precise Location (GPS)</label>
+                                <div className="flex gap-3">
+                                    <input value={form.lat} readOnly className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm" placeholder="Latitude"/>
+                                    <input value={form.lng} readOnly className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-slate-500 text-sm" placeholder="Longitude"/>
+                                    <button type="button" onClick={captureGPS} className="bg-slate-900 text-white px-6 rounded-xl hover:bg-black transition-colors flex items-center gap-2 text-sm font-bold disabled:opacity-50" disabled={gpsLoading}>{gpsLoading?'Locating...':<><LucideIcon name="map-pin" size={16}/> Capture</>}</button>
+                                </div>
+                            </div>
+                            <div className="md:col-span-2"><label className="block text-xs font-bold text-slate-500 uppercase mb-2">Detailed Observations</label><textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} rows="4" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-green-500 outline-none transition-all text-slate-900" placeholder="Describe the activity, machinery seen, or time of day..."></textarea></div>
+                            <div className="md:col-span-2 pt-4"><button type="submit" disabled={submitting||submitted} className="w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-green-500/30 transition-all flex items-center justify-center gap-3 text-lg disabled:bg-slate-300 disabled:shadow-none">{submitting?'PROCESSING INTEL...':submitted?'INTEL RECEIVED ✓':'TRANSMIT TO ARANYA CORE'}</button></div>
+                        </form>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {myReports.length === 0 ? (
+                            <div className="bg-white p-12 rounded-3xl text-center border-2 border-dashed border-slate-200"><LucideIcon name="inbox" size={48} className="mx-auto text-slate-300 mb-4"/><h3 className="text-xl font-bold text-slate-900">No active reports</h3><p className="text-slate-500">Your submitted intelligence will appear here for tracking.</p></div>
+                        ) : (
+                            myReports.map(rep => (
+                                <div key={rep.id} className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                                    <div className="p-6 flex justify-between items-start gap-4" onClick={()=>setExpanded(expanded===rep.id?null:rep.id)}>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">{rep.id}</span>
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${rep.status==='Resolved'?'bg-green-100 text-green-600':'bg-blue-100 text-blue-600'}`}>{rep.status.toUpperCase()}</span>
+                                            </div>
+                                            <h3 className="text-xl font-bold text-slate-900">{rep.topic}</h3>
+                                            <p className="text-slate-500 text-sm mt-1 flex items-center gap-1"><LucideIcon name="map-pin" size={12}/> {rep.zone}</p>
+                                        </div>
+                                        <LucideIcon name={expanded===rep.id?'chevron-up':'chevron-down'} className="text-slate-400" />
+                                    </div>
+                                    {expanded===rep.id && (
+                                        <div className="px-6 pb-8 pt-2 border-t border-slate-50">
+                                            <div className="grid md:grid-cols-2 gap-8 mt-4">
+                                                <div className="space-y-6">
+                                                    <div><h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Enforcement Timeline</h4>
+                                                        <div className="space-y-4">
+                                                            {[
+                                                                {label:'Submitted',done:true,date:rep.date},
+                                                                {label:'Viewed by Authority',done:['Under Review','Under Investigation','Resolved','Closed'].includes(rep.status)},
+                                                                {label:'AI Analysis Complete',done:['Under Review','Under Investigation','Resolved','Closed'].includes(rep.status),date:'Automated'},
+                                                                {label:'Investigation Started',done:['Under Investigation','Resolved','Closed'].includes(rep.status)},
+                                                                {label:'Resolved',done:['Resolved','Closed'].includes(rep.status)}
+                                                            ].map((step,i)=>(
+                                                                <div key={i} className="flex items-center gap-3">
+                                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${step.done?'bg-green-500 text-white':'bg-slate-100 text-slate-300'}`}>{step.done&&<LucideIcon name="check" size={12}/>}</div>
+                                                                    <div><div className={`text-sm font-bold ${step.done?'text-slate-900':'text-slate-400'}`}>{step.label}</div>{step.date&&<div className="text-[10px] text-slate-500">{step.date}</div>}</div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                                                    <h4 className="text-xs font-bold text-slate-400 uppercase mb-3">Authority Feedback</h4>
+                                                    {rep.status==='Pending Review' ? (
+                                                        <div className="text-slate-400 text-sm italic">Intelligence is currently being ingested into the neural pipeline for change-detection verification.</div>
+                                                    ) : (
+                                                        <div className="space-y-3">
+                                                            <div className="text-slate-700 text-sm leading-relaxed">Authority has acknowledged the report. Satellite confirmation indicates a <span className="font-bold text-red-500">{rep.risk}% match</span> with reported activity.</div>
+                                                            <div className="bg-white p-3 rounded-xl border border-slate-200 text-[11px] text-slate-500 font-mono">CASE_LOG: Aerial surveillance scheduled for next revisit cycle. Geo-tagged dossier transmitted to regional forest office.</div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ── APP ───────────────────────────────────────────────────────────────────────
 const App = () => {
-  const [view, setView] = useState('simulation');
-  const [userRole, setUserRole] = useState(null);
-  const [reports, setReports] = useState(INITIAL_REPORTS);
+    const [view, setView] = useState('intro'); // Start with cinematic intro
+    const [userRole, setUserRole] = useState(null);
+    const [reports, setReports] = useState(INITIAL_REPORTS);
 
-  const handleLogin = role => { setUserRole(role); setView(role); };
-  const handleLogout = () => { setUserRole(null); };
+    const handleLogin = role => { setUserRole(role); setView(role); };
+    const handleLogout = () => { setUserRole(null); };
 
-  useEffect(() => { if(window.lucide) window.lucide.createIcons(); }, [view]);
+    useEffect(() => { if(window.lucide) window.lucide.createIcons(); }, []);
 
-  return (
-    <NotificationProvider>
-      <div className="min-h-screen">
-        <Navigation setView={setView} userRole={userRole} onLogout={handleLogout}/>
-        {view==='simulation' && <SimulationScreen onComplete={() => setView('login')}/>}
-        {view==='login' && <LoginScreen onLogin={handleLogin}/>}
-        {view==='gov' && <GovDashboard reports={reports} setReports={setReports} onLogout={handleLogout}/>}
-        {view==='citizen' && <CitizenPortal reports={reports} setReports={setReports} onLogout={handleLogout}/>}
-      </div>
-    </NotificationProvider>
-  );
+    return (
+        <NotificationProvider>
+            <div className="min-h-screen">
+                {view !== 'intro' && (
+                    <Navigation view={view} setView={setView} userRole={userRole} onLogout={handleLogout}/>
+                )}
+                <AnimatePresence mode="wait">
+                    {view==='intro' && (
+                        <motion.div key="intro" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                            <CinematicIntro onComplete={() => setView('landing')} />
+                        </motion.div>
+                    )}
+                    {view==='landing' && (
+                        <motion.div key="landing" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                            <LandingPage onStart={() => setView('simulation')}/>
+                        </motion.div>
+                    )}
+                    {view==='simulation' && (
+                        <motion.div key="sim" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                            <SimulationScreen onComplete={() => setView('login')}/>
+                        </motion.div>
+                    )}
+                    {view==='login' && (
+                        <motion.div key="login" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                            <LoginScreen onLogin={handleLogin}/>
+                        </motion.div>
+                    )}
+                    {view==='gov' && (
+                        <motion.div key="gov" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                            <GovDashboard reports={reports} setReports={setReports} onLogout={handleLogout}/>
+                        </motion.div>
+                    )}
+                    {view==='citizen' && (
+                        <motion.div key="citizen" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                            <CitizenPortal reports={reports} setReports={setReports} onLogout={handleLogout}/>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </NotificationProvider>
+    );
 };
 
-ReactDOM.createRoot(document.getElementById('app-root')).render(<App/>);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
