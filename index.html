@@ -8,15 +8,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <style>
-        body, html {
+        * {
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+
+        body, html {
             width: 100%;
             height: 100%;
             overflow-x: hidden;
             background-color: #000;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             color: white;
+            scroll-behavior: smooth;
         }
 
         #canvas-container {
@@ -28,115 +33,133 @@
             z-index: 1;
         }
 
-        .section {
+        #scroll-content {
             position: relative;
+            z-index: 2;
             width: 100%;
-            height: 200vh; /* Increased height for smoother scroll transitions */
+        }
+
+        .scroll-section {
+            width: 100%;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 2;
-            pointer-events: none;
+            position: relative;
         }
 
         .content-box {
             text-align: center;
-            max-width: 800px;
-            padding: 20px;
+            max-width: 900px;
+            padding: 40px;
             opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .content-box.active {
+            pointer-events: all;
         }
 
         h1.aranya-title {
-            font-size: 5rem;
-            letter-spacing: 1.5rem;
+            font-size: 6rem;
+            letter-spacing: 2rem;
             margin: 0;
             font-weight: 200;
             text-transform: uppercase;
+            line-height: 1.2;
         }
 
         .letter {
             display: inline-block;
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateY(30px);
+            margin: 0 8px;
         }
 
         .subtitle {
-            font-size: 1.2rem;
-            letter-spacing: 0.3rem;
-            margin-top: 2rem;
+            font-size: 1.1rem;
+            letter-spacing: 0.4rem;
+            margin-top: 2.5rem;
             font-weight: 300;
-            color: #aaa;
+            color: #999;
             text-transform: uppercase;
+            line-height: 1.8;
         }
 
         .word {
             display: inline-block;
             opacity: 0;
-            margin: 0 5px;
+            margin: 0 6px;
         }
 
         .problem-text {
-            font-size: 1.8rem;
-            line-height: 1.6;
+            font-size: 2rem;
+            line-height: 1.8;
             font-weight: 300;
             font-style: italic;
-            color: #eee;
+            color: #fff;
+            max-width: 1000px;
         }
 
         .cta-button {
             pointer-events: all;
-            padding: 15px 40px;
-            font-size: 1.2rem;
+            padding: 18px 50px;
+            font-size: 1.3rem;
             background: transparent;
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
             text-decoration: none;
             display: inline-block;
-            margin-top: 30px;
+            margin-top: 40px;
             letter-spacing: 2px;
             text-transform: uppercase;
+            font-weight: 500;
         }
 
         .cta-button:hover {
             background: white;
             color: black;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+            border-color: white;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
         }
 
-        /* Progress indicator */
         #scroll-hint {
             position: fixed;
-            bottom: 30px;
+            bottom: 40px;
             left: 50%;
             transform: translateX(-50%);
             z-index: 10;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             letter-spacing: 2px;
             text-transform: uppercase;
             color: rgba(255, 255, 255, 0.5);
-            animation: pulse 2s infinite;
+            animation: pulse 2.5s infinite;
         }
 
         @keyframes pulse {
-            0% { opacity: 0.3; }
-            50% { opacity: 1; }
-            100% { opacity: 0.3; }
+            0%, 100% { opacity: 0.3; transform: translateX(-50%) translateY(0); }
+            50% { opacity: 1; transform: translateX(-50%) translateY(5px); }
         }
 
-        /* India Highlight Overlay */
         #india-highlight {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%);
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.7) 100%);
             z-index: 1;
             opacity: 0;
             pointer-events: none;
+        }
+
+        .spacer {
+            height: 100vh;
         }
     </style>
 </head>
@@ -146,78 +169,85 @@
     <div id="india-highlight"></div>
     <div id="scroll-hint">Scroll to explore</div>
 
-    <!-- Scene 1: The Hook (0-4s) -->
-    <div class="section" id="scene1"></div>
+    <div id="scroll-content">
+        <!-- Scene 1: The Hook -->
+        <div class="scroll-section" id="scene1"></div>
 
-    <!-- Scene 2: The Zoom (4-12s) -->
-    <div class="section" id="scene2"></div>
+        <!-- Scene 2: The Zoom -->
+        <div class="scroll-section" id="scene2"></div>
 
-    <!-- Scene 3: The Reveal (12-18s) -->
-    <div class="section" id="scene3">
-        <div class="content-box" id="reveal-box">
-            <h1 class="aranya-title">
-                <span class="letter">A</span>
-                <span class="letter">R</span>
-                <span class="letter">A</span>
-                <span class="letter">N</span>
-                <span class="letter">Y</span>
-                <span class="letter">A</span>
-            </h1>
-            <div class="subtitle">
-                <span class="word">Autonomous</span>
-                <span class="word">·</span>
-                <span class="word">Real-time</span>
-                <span class="word">·</span>
-                <span class="word">Analytics</span>
-                <span class="word">·</span>
-                <span class="word">for</span>
-                <span class="word">·</span>
-                <span class="word">Natural</span>
-                <span class="word">·</span>
-                <span class="word">Yield</span>
-                <span class="word">·</span>
-                <span class="word">Area</span>
-                <span class="word">·</span>
-                <span class="word">Protection</span>
+        <!-- Scene 3: The Reveal -->
+        <div class="scroll-section" id="scene3">
+            <div class="content-box" id="reveal-box">
+                <h1 class="aranya-title">
+                    <span class="letter">A</span>
+                    <span class="letter">R</span>
+                    <span class="letter">A</span>
+                    <span class="letter">N</span>
+                    <span class="letter">Y</span>
+                    <span class="letter">A</span>
+                </h1>
+                <div class="subtitle">
+                    <span class="word">Autonomous</span>
+                    <span class="word">·</span>
+                    <span class="word">Real-time</span>
+                    <span class="word">·</span>
+                    <span class="word">Analytics</span>
+                    <span class="word">·</span>
+                    <span class="word">for</span>
+                    <span class="word">·</span>
+                    <span class="word">Natural</span>
+                    <span class="word">·</span>
+                    <span class="word">Yield</span>
+                    <span class="word">·</span>
+                    <span class="word">Area</span>
+                    <span class="word">·</span>
+                    <span class="word">Protection</span>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Scene 4: The Problem Statement (18-25s) -->
-    <div class="section" id="scene4">
-        <div class="content-box" id="problem-box">
-            <p class="problem-text">
-                "The Aravali hills — 2 billion years old — are disappearing. <br>
-                We built a system to catch who's doing it."
-            </p>
+        <!-- Scene 4: The Problem Statement -->
+        <div class="scroll-section" id="scene4">
+            <div class="content-box" id="problem-box">
+                <p class="problem-text">
+                    "The Aravali hills — 2 billion years old — are disappearing.<br>
+                    We built a system to catch who's doing it."
+                </p>
+            </div>
         </div>
-    </div>
 
-    <!-- Scene 5: Transition to dashboard -->
-    <div class="section" id="scene5">
-        <div class="content-box" id="cta-box">
-            <a href="http://localhost:8501" class="cta-button">Enter ARANYA &rarr;</a>
+        <!-- Scene 5: The CTA -->
+        <div class="scroll-section" id="scene5">
+            <div class="content-box" id="cta-box">
+                <h2 style="font-size: 2.5rem; font-weight: 300; margin-bottom: 20px;">Ready to protect the Aravali?</h2>
+                <a href="http://localhost:8501" class="cta-button">Enter ARANYA &rarr;</a>
+            </div>
         </div>
+
+        <!-- Extra spacer for scroll room -->
+        <div class="spacer"></div>
     </div>
 
     <script>
-        // --- Three.js Setup ---
+        // ==================== THREE.JS SETUP ====================
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10000);
         const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor(0x000000, 1);
         container.appendChild(renderer.domElement);
 
-        // Textures (using placeholders that look good, high-res NASA-style)
+        // ==================== TEXTURES ====================
         const textureLoader = new THREE.TextureLoader();
         const earthTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_atmos_2048.jpg');
         const earthNormal = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_normal_2048.jpg');
         const earthSpecular = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_specular_2048.jpg');
         const cloudsTexture = textureLoader.load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/earth_clouds_1024.png');
 
-        // Earth Group
+        // ==================== EARTH GROUP ====================
         const earthGroup = new THREE.Group();
         scene.add(earthGroup);
 
@@ -238,7 +268,7 @@
         const cloudMat = new THREE.MeshPhongMaterial({
             map: cloudsTexture,
             transparent: true,
-            opacity: 0.8
+            opacity: 0.7
         });
         const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
         earthGroup.add(cloudMesh);
@@ -248,130 +278,179 @@
         const atmosMat = new THREE.MeshBasicMaterial({
             color: 0x4488ff,
             transparent: true,
-            opacity: 0.2,
+            opacity: 0.25,
             side: THREE.BackSide
         });
         const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
         earthGroup.add(atmosMesh);
 
         // Atmosphere Glow (Outer)
-        const outerAtmosGeo = new THREE.SphereGeometry(1.08, 64, 64);
+        const outerAtmosGeo = new THREE.SphereGeometry(1.1, 64, 64);
         const outerAtmosMat = new THREE.MeshBasicMaterial({
             color: 0x2244aa,
             transparent: true,
-            opacity: 0.1,
+            opacity: 0.08,
             side: THREE.BackSide
         });
         const outerAtmosMesh = new THREE.Mesh(outerAtmosGeo, outerAtmosMat);
         earthGroup.add(outerAtmosMesh);
 
-        // Stars Background (Layered for depth)
-        function createStars(count, size, range) {
+        // ==================== STARS ====================
+        function createStarField(count, size, range) {
             const geo = new THREE.BufferGeometry();
             const coords = new Float32Array(count * 3);
-            for(let i=0; i<count*3; i++) {
+            for(let i = 0; i < count * 3; i++) {
                 coords[i] = (Math.random() - 0.5) * range;
             }
             geo.setAttribute('position', new THREE.BufferAttribute(coords, 3));
-            return new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: size, transparent: true, opacity: 0.8 }));
+            const mat = new THREE.PointsMaterial({ 
+                color: 0xffffff, 
+                size: size, 
+                transparent: true, 
+                opacity: 0.8,
+                sizeAttenuation: true
+            });
+            return new THREE.Points(geo, mat);
         }
-        scene.add(createStars(3000, 0.03, 100));
-        scene.add(createStars(1000, 0.06, 150));
 
-        // Lights
-        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        const starField1 = createStarField(2000, 0.04, 120);
+        const starField2 = createStarField(1000, 0.08, 200);
+        scene.add(starField1);
+        scene.add(starField2);
+
+        // ==================== LIGHTING ====================
+        const ambientLight = new THREE.AmbientLight(0x505050, 2.5);
         scene.add(ambientLight);
-        const sunLight = new THREE.DirectionalLight(0xffffff, 2);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
         sunLight.position.set(5, 3, 5);
         scene.add(sunLight);
 
-        // Starfield background groups for parallax
-        const starGroup1 = createStars(3000, 0.03, 100);
-        const starGroup2 = createStars(1000, 0.06, 150);
-        scene.add(starGroup1);
-        scene.add(starGroup2);
-
-        // Initial Position
+        // ==================== CAMERA INITIAL STATE ====================
         camera.position.z = 5;
-        // Tilt Earth to show India better
-        earthGroup.rotation.y = -Math.PI / 2.5; 
-        earthGroup.rotation.x = 0.3; 
+        earthGroup.rotation.y = -Math.PI / 2.5;
+        earthGroup.rotation.x = 0.3;
 
-        // --- Animation Logic ---
+        // ==================== ANIMATION LOOP ====================
         function animate() {
             requestAnimationFrame(animate);
-            // Constant slow rotation
-            earthGroup.rotation.y += 0.0003;
-            cloudMesh.rotation.y += 0.0005;
-            
-            // Subtle star movement
-            starGroup1.rotation.y += 0.0001;
-            starGroup2.rotation.y += 0.00005;
-            
+            earthGroup.rotation.y += 0.0002;
+            cloudMesh.rotation.y += 0.0003;
+            starField1.rotation.y += 0.00008;
+            starField2.rotation.y += 0.00004;
             renderer.render(scene, camera);
         }
         animate();
 
-        // --- GSAP Scroll Animations ---
+        // ==================== GSAP SCROLL ANIMATIONS ====================
         gsap.registerPlugin(ScrollTrigger);
 
-        const tl = gsap.timeline({
+        // Create master timeline
+        const masterTL = gsap.timeline({
             scrollTrigger: {
-                trigger: "body",
+                trigger: "#scroll-content",
                 start: "top top",
                 end: "bottom bottom",
                 scrub: 2,
+                markers: false
             }
         });
 
-        // Scene 1 -> 2: The Zoom (Initial slow, then fast)
-        tl.to(camera.position, { z: 1.1, ease: "power4.inOut" }, 0);
-        tl.to(earthGroup.rotation, { 
-            y: Math.PI * 0.44, 
-            x: 0.45, 
-            ease: "power4.inOut" 
+        // SCENE 1-2: The Zoom (Camera pulls in, Earth rotates to India)
+        masterTL.to(camera.position, {
+            z: 0.8,
+            ease: "power2.inOut",
+            duration: 1
         }, 0);
 
-        // Fade in India Highlight
-        tl.to("#india-highlight", { opacity: 0.7, duration: 0.5 }, 0.3);
+        masterTL.to(earthGroup.rotation, {
+            y: Math.PI * 0.42,
+            x: 0.5,
+            ease: "power2.inOut",
+            duration: 1
+        }, 0);
 
-        // Scene 3: The Reveal (Letters drop with pulse)
-        tl.to("#reveal-box", { opacity: 1, duration: 0.2 }, 0.4);
-        
+        masterTL.to("#india-highlight", {
+            opacity: 0.6,
+            duration: 0.6
+        }, 0.2);
+
+        // SCENE 3: The Reveal (Letters drop with pulse)
+        masterTL.to("#reveal-box", {
+            opacity: 1,
+            duration: 0.3
+        }, 0.5);
+
         const letters = document.querySelectorAll('.letter');
         letters.forEach((letter, i) => {
-            tl.to(letter, { 
-                opacity: 1, 
-                y: 0, 
-                scale: 1.4, 
-                duration: 0.1, 
+            masterTL.to(letter, {
+                opacity: 1,
+                y: 0,
+                scale: 1.3,
+                duration: 0.12,
                 ease: "back.out"
-            }, 0.5 + (i * 0.08));
-            tl.to(letter, { scale: 1, duration: 0.1, boxShadow: "0 0 15px rgba(255,255,255,0.5)" }, 0.6 + (i * 0.08));
+            }, 0.6 + (i * 0.1));
+
+            masterTL.to(letter, {
+                scale: 1,
+                duration: 0.1
+            }, 0.72 + (i * 0.1));
         });
 
         const words = document.querySelectorAll('.word');
         words.forEach((word, i) => {
-            tl.to(word, { opacity: 1, duration: 0.1 }, 1.2 + (i * 0.05));
+            masterTL.to(word, {
+                opacity: 1,
+                duration: 0.08
+            }, 1.3 + (i * 0.04));
         });
 
-        // Scene 4: Problem Statement (Fade in text)
-        tl.to("#reveal-box", { opacity: 0, y: -100, filter: "blur(10px)", duration: 0.4 }, 1.8);
-        tl.to("#problem-box", { opacity: 1, duration: 0.5 }, 2.2);
-        
-        // Scene 5: Final Transition to CTA
-        tl.to("#problem-box", { opacity: 0, y: -50, filter: "blur(5px)", duration: 0.4 }, 2.8);
-        tl.to("#cta-box", { opacity: 1, y: 0, duration: 0.5 }, 3.2);
-        tl.to(camera.position, { z: 1.05, duration: 0.5 }, 3.2); 
+        // SCENE 4: Problem Statement
+        masterTL.to("#reveal-box", {
+            opacity: 0,
+            y: -80,
+            filter: "blur(10px)",
+            duration: 0.4
+        }, 1.8);
 
-        // Initial states
-        gsap.set("#cta-box", { y: 50 });
+        masterTL.to("#problem-box", {
+            opacity: 1,
+            duration: 0.5
+        }, 2.1);
 
-        // Handle Resize
+        // Camera continues zoom
+        masterTL.to(camera.position, {
+            z: 0.6,
+            ease: "power2.inOut",
+            duration: 1
+        }, 1.8);
+
+        // SCENE 5: CTA Button
+        masterTL.to("#problem-box", {
+            opacity: 0,
+            y: -60,
+            filter: "blur(8px)",
+            duration: 0.4
+        }, 2.6);
+
+        masterTL.to("#cta-box", {
+            opacity: 1,
+            y: 0,
+            duration: 0.5
+        }, 2.9);
+
+        // Final camera position
+        masterTL.to(camera.position, {
+            z: 0.5,
+            ease: "power2.inOut",
+            duration: 0.8
+        }, 2.9);
+
+        // ==================== HANDLE RESIZE ====================
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            ScrollTrigger.refresh();
         });
 
     </script>
